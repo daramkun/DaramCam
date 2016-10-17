@@ -168,6 +168,7 @@
     <ClCompile Include="DaramCam.Bitmap.cpp" />
     <ClCompile Include="DaramCam.GDICapturer.cpp" />
     <ClCompile Include="DaramCam.ImageGenerator.cpp" />
+    <ClCompile Include="DaramCam.MFVideoGenerator.cpp" />
     <ClCompile Include="DaramCam.VideoGenerator.cpp" />
     <ClCompile Include="DaramCam.Capturer.cpp" />
     <ClCompile Include="DaramCam.WICVideoGenerator.cpp" />

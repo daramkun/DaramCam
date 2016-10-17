@@ -32,6 +32,8 @@ public:
 
 	unsigned GetByteArraySize ();
 
+	IWICBitmap * ToWICBitmap ( IWICImagingFactory * factory );
+
 public:
 	void Resize ( unsigned width, unsigned height );
 
@@ -93,7 +95,7 @@ enum DCWICImageType
 	DCWICImageType_TIFF,
 };
 
-// Image File Generator via Windows Imaging Codec
+// Image File Generator via Windows Imaging Component
 // Can generate BMP, JPEG, PNG, TIFF
 class DARAMCAM_EXPORTS DCWICImageGenerator : public DCImageGenerator
 {
@@ -120,12 +122,13 @@ public:
 	virtual void End () = 0;
 };
 
-// Video File Generator via Windows Imaging Codec
+// Video File Generator via Windows Imaging Component
 // Can generate GIF
-class DARAMCAM_EXPORTS DCWICVideoGenerator
+class DARAMCAM_EXPORTS DCWICVideoGenerator : public DCVideoGenerator
 {
+	friend DWORD WINAPI WICVG_Progress ( LPVOID vg );
 public:
-	DCWICVideoGenerator ();
+	DCWICVideoGenerator ( unsigned frameTick = 42 );
 	virtual ~DCWICVideoGenerator ();
 
 public:
@@ -134,12 +137,43 @@ public:
 
 private:
 	IWICImagingFactory * piFactory;
-	GUID gifContainerGUID;
 
 	IStream * stream;
 	DCCapturer * capturer;
-	IWICStream * piStream;
-	IWICBitmapEncoder * piEncoder;
+
+	HANDLE threadHandle;
+	bool threadRunning;
+
+	unsigned frameTick;
+};
+
+enum DCMFContainerType
+{
+	DCMFContainerType_MP4,
+	DCMFContainerType_WMV,
+	DCMFContainerType_AVI,
+};
+
+struct DCMFVideoConfig
+{
+public:
+	unsigned bitrate;
+};
+
+// Video File Generator via Windows Media Foundation
+// Can generate MP4
+class DARAMCAM_EXPORTS DCMFVideoGenerator : public DCVideoGenerator
+{
+public:
+	DCMFVideoGenerator ( DCMFContainerType containerType = DCMFContainerType_MP4, unsigned fps = 30 );
+	virtual ~DCMFVideoGenerator ();
+
+public:
+	virtual void Begin ( IStream * stream, DCCapturer * capturer );
+	virtual void End ();
+
+private:
+	DCMFVideoConfig videoConfig;
 };
 
 #endif

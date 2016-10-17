@@ -21,6 +21,24 @@ unsigned DCBitmap::GetByteArraySize ()
 	return width * height * 3;
 }
 
+IWICBitmap * DCBitmap::ToWICBitmap ( IWICImagingFactory * factory )
+{
+	IWICBitmap * bitmap;
+	factory->CreateBitmap ( width, height, GUID_WICPixelFormat24bppBGR, WICBitmapCacheOnDemand, &bitmap );
+	
+	WICRect wicRect = { 0, 0, width, height };
+	IWICBitmapLock * bitmapLock;
+	bitmap->Lock ( &wicRect, WICBitmapLockWrite, &bitmapLock );
+
+	unsigned arrLen = GetByteArraySize ();
+	WICInProcPointer ptr;
+	bitmapLock->GetDataPointer ( &arrLen, &ptr );
+	memcpy ( ptr, byteArray, arrLen );
+	bitmapLock->Release ();
+
+	return bitmap;
+}
+
 void DCBitmap::Resize ( unsigned _width, unsigned _height )
 {
 	if ( byteArray ) delete [] byteArray;

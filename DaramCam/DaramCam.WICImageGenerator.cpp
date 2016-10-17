@@ -45,10 +45,11 @@ void DCWICImageGenerator::Generate ( IStream * stream, DCBitmap * bitmap )
 	piBitmapFrame->WritePixels ( bitmap->GetHeight (), bitmap->GetStride (), bitmap->GetByteArraySize (), bitmap->GetByteArray () );
 
 	piBitmapFrame->Commit ();
-	piEncoder->Commit ();
 
 	if ( piBitmapFrame )
 		piBitmapFrame->Release ();
+
+	piEncoder->Commit ();
 
 	if ( piEncoder )
 		piEncoder->Release ();
