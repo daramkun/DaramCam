@@ -172,7 +172,7 @@ int main ( void )
 
 	FileStream::OpenFile ( TEXT ( "Test.gif" ), &stream, true );
 
-	DCVideoGenerator * vidGen = new DCWICVideoGenerator ();
+	DCVideoGenerator * vidGen = new DCWICVideoGenerator ( 16 );
 	vidGen->Begin ( stream, capturer );
 	Sleep ( 10000 );
 	vidGen->End ();
