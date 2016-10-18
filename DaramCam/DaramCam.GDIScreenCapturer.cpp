@@ -1,7 +1,7 @@
 #include "DaramCam.h"
 #include <Windows.h>
 
-DCGDICapturer::DCGDICapturer ()
+DCGDIScreenCapturer::DCGDIScreenCapturer ()
 	: capturedBitmap ( GetSystemMetrics ( SM_CXVIRTUALSCREEN ), GetSystemMetrics ( SM_CYVIRTUALSCREEN ) ),
 	captureRegion ( nullptr )
 {
@@ -10,7 +10,7 @@ DCGDICapturer::DCGDICapturer ()
 	captureBitmap = CreateCompatibleBitmap ( desktopDC, capturedBitmap.GetWidth (), capturedBitmap.GetHeight () );
 }
 
-DCGDICapturer::~DCGDICapturer ()
+DCGDIScreenCapturer::~DCGDIScreenCapturer ()
 {
 	DeleteObject ( captureBitmap );
 	DeleteDC ( captureDC );
@@ -29,7 +29,7 @@ void GetImageDataFromHBITMAP ( HDC hdc, HBITMAP bitmap, DCBitmap * cb )
 		GetDIBits ( hdc, bitmap, i, 1, ( cb->GetByteArray () + ( ( cb->GetHeight () - 1 - i ) * cb->GetStride () ) ), &bmpInfo, DIB_RGB_COLORS );
 }
 
-void DCGDICapturer::Capture ()
+void DCGDIScreenCapturer::Capture ()
 {
 	HBITMAP oldBitmap = ( HBITMAP ) SelectObject ( captureDC, captureBitmap );
 	if ( !captureRegion )
@@ -44,9 +44,9 @@ void DCGDICapturer::Capture ()
 	GetImageDataFromHBITMAP ( captureDC, captureBitmap, &capturedBitmap );
 }
 
-DCBitmap & DCGDICapturer::GetCapturedBitmap () { return capturedBitmap; }
+DCBitmap & DCGDIScreenCapturer::GetCapturedBitmap () { return capturedBitmap; }
 
-void DCGDICapturer::SetRegion ( RECT * _region )
+void DCGDIScreenCapturer::SetRegion ( RECT * _region )
 {
 	captureRegion = _region;
 

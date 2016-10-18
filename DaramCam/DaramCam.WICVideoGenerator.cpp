@@ -112,7 +112,7 @@ DWORD WINAPI WICVG_Progress ( LPVOID vg )
 	return 0;
 }
 
-void DCWICVideoGenerator::Begin ( IStream * _stream, DCCapturer * _capturer )
+void DCWICVideoGenerator::Begin ( IStream * _stream, DCScreenCapturer * _capturer )
 {
 	stream = _stream;
 	capturer = _capturer;

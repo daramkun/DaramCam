@@ -3,6 +3,8 @@
 
 #include <Windows.h>
 #include <wincodec.h>
+#include <Audioclient.h>
+#include <Mmdeviceapi.h>
 #include <string>
 #include <fstream>
 
@@ -43,10 +45,10 @@ private:
 };
 
 // Abstract Screen Capturer
-class DARAMCAM_EXPORTS DCCapturer
+class DARAMCAM_EXPORTS DCScreenCapturer
 {
 public:
-	virtual ~DCCapturer ();
+	virtual ~DCScreenCapturer ();
 
 public:
 	virtual void Capture () = 0;
@@ -54,11 +56,11 @@ public:
 };
 
 // GDI Screen Capturer
-class DARAMCAM_EXPORTS DCGDICapturer : public DCCapturer
+class DARAMCAM_EXPORTS DCGDIScreenCapturer : public DCScreenCapturer
 {
 public:
-	DCGDICapturer ();
-	virtual ~DCGDICapturer ();
+	DCGDIScreenCapturer ();
+	virtual ~DCGDIScreenCapturer ();
 
 public:
 	virtual void Capture ();
@@ -77,6 +79,44 @@ private:
 	DCBitmap capturedBitmap;
 };
 
+// Abstract Audio Capturer
+class DARAMCAM_EXPORTS DCAudioCapturer
+{
+public:
+	virtual ~DCAudioCapturer ();
+
+public:
+	virtual void Begin () = 0;
+	virtual void End () = 0;
+
+	virtual void* GetAudioData ( unsigned * bufferLength ) = 0;
+};
+
+// WASAPI Audio Capturer
+class DARAMCAM_EXPORTS DCWASAPIAudioCapturer : public DCAudioCapturer
+{
+public:
+	DCWASAPIAudioCapturer ();
+	virtual ~DCWASAPIAudioCapturer ();
+
+public:
+	virtual void Begin ();
+	virtual void End ();
+
+	virtual void* GetAudioData ( unsigned * bufferLength );
+
+private:
+	IMMDeviceEnumerator *pEnumerator;
+	IMMDevice *pDevice;
+	IAudioClient *pAudioClient;
+	IAudioCaptureClient * pCaptureClient;
+
+	WAVEFORMATEX *pwfx;
+
+	char * byteArray;
+	unsigned byteArrayLength;
+};
+
 // Abstract Image File Generator
 class DARAMCAM_EXPORTS DCImageGenerator
 {
@@ -87,6 +127,7 @@ public:
 	virtual void Generate ( IStream * stream, DCBitmap * bitmap ) = 0;
 };
 
+// Image Types for WIC Image Generator
 enum DCWICImageType
 {
 	DCWICImageType_BMP,
@@ -118,7 +159,7 @@ public:
 	virtual ~DCVideoGenerator ();
 
 public:
-	virtual void Begin ( IStream * stream, DCCapturer * capturer ) = 0;
+	virtual void Begin ( IStream * stream, DCScreenCapturer * capturer ) = 0;
 	virtual void End () = 0;
 };
 
@@ -132,14 +173,14 @@ public:
 	virtual ~DCWICVideoGenerator ();
 
 public:
-	virtual void Begin ( IStream * stream, DCCapturer * capturer );
+	virtual void Begin ( IStream * stream, DCScreenCapturer * capturer );
 	virtual void End ();
 
 private:
 	IWICImagingFactory * piFactory;
 
 	IStream * stream;
-	DCCapturer * capturer;
+	DCScreenCapturer * capturer;
 
 	HANDLE threadHandle;
 	bool threadRunning;
@@ -169,11 +210,46 @@ public:
 	virtual ~DCMFVideoGenerator ();
 
 public:
-	virtual void Begin ( IStream * stream, DCCapturer * capturer );
+	virtual void Begin ( IStream * stream, DCScreenCapturer * capturer );
 	virtual void End ();
 
 private:
 	DCMFVideoConfig videoConfig;
+};
+
+// Abstract Audio File Generator
+class DARAMCAM_EXPORTS DCAudioGenerator
+{
+public:
+	virtual ~DCAudioGenerator ();
+
+public:
+	virtual void Begin ( IStream * stream, DCAudioCapturer * capturer ) = 0;
+	virtual void End () = 0;
+};
+
+enum DCMFAudioType
+{
+	DCMFAudioType_MP3,
+	DCMFAudioType_AAC,
+	DCMFAudioType_WMA,
+	DCMFAudioType_WAV,
+};
+
+// Audio File Generator via Windows Media Foundation
+// Can generate MP3, AAC, WMA, WAV
+class DARAMCAM_EXPORTS DCMFAudioGenerator : public DCAudioGenerator
+{
+public:
+	DCMFAudioGenerator ( DCMFAudioType audioType );
+	virtual ~DCMFAudioGenerator ();
+
+public:
+	virtual void Begin ( IStream * stream, DCAudioCapturer * capturer );
+	virtual void End ();
+
+private:
+
 };
 
 #endif

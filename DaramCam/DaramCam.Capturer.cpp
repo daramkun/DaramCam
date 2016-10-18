@@ -1,6 +1,11 @@
 #include "DaramCam.h"
 
-DCCapturer::~DCCapturer ()
+DCScreenCapturer::~DCScreenCapturer ()
+{
+
+}
+
+DCAudioCapturer::~DCAudioCapturer ()
 {
 
 }

@@ -23,16 +23,10 @@
     <ClCompile Include="DaramCam.Bitmap.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
-    <ClCompile Include="DaramCam.GDICapturer.cpp">
-      <Filter>소스 파일</Filter>
-    </ClCompile>
     <ClCompile Include="DaramCam.ImageGenerator.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
     <ClCompile Include="DaramCam.VideoGenerator.cpp">
-      <Filter>소스 파일</Filter>
-    </ClCompile>
-    <ClCompile Include="DaramCam.Capturer.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
     <ClCompile Include="DaramCam.WICImageGenerator.cpp">
@@ -42,6 +36,15 @@
       <Filter>소스 파일</Filter>
     </ClCompile>
     <ClCompile Include="DaramCam.MFVideoGenerator.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="DaramCam.GDIScreenCapturer.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="DaramCam.Capturer.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="DaramCam.WASAPIAudioCapturer.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
   </ItemGroup>

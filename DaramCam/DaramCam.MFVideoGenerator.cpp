@@ -18,7 +18,7 @@ DCMFVideoGenerator::~DCMFVideoGenerator ()
 
 }
 
-void DCMFVideoGenerator::Begin ( IStream * stream, DCCapturer * capturer )
+void DCMFVideoGenerator::Begin ( IStream * stream, DCScreenCapturer * capturer )
 {
 
 }
