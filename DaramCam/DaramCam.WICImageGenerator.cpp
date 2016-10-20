@@ -1,6 +1,4 @@
 #include "DaramCam.h"
-#include <wincodecsdk.h>
-#pragma comment ( lib, "windowscodecs.lib" )
 
 DCWICImageGenerator::DCWICImageGenerator ( DCWICImageType imageType )
 {

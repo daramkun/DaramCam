@@ -163,19 +163,25 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="DaramCam.h" />
+    <ClInclude Include="resource.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="DaramCam.Bitmap.cpp" />
+    <ClCompile Include="DaramCam.cpp" />
+    <ClCompile Include="DaramCam.DXGIScreenCapturer.cpp" />
     <ClCompile Include="DaramCam.GDIScreenCapturer.cpp" />
-    <ClCompile Include="DaramCam.ImageGenerator.cpp" />
+    <ClCompile Include="DaramCam.Generator.cpp" />
     <ClCompile Include="DaramCam.MFVideoGenerator.cpp" />
-    <ClCompile Include="DaramCam.VideoGenerator.cpp" />
     <ClCompile Include="DaramCam.Capturer.cpp" />
     <ClCompile Include="DaramCam.WASAPIAudioCapturer.cpp" />
     <ClCompile Include="DaramCam.WICVideoGenerator.cpp" />
+    <ClCompile Include="DaramCam.MFAudioGenerator.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="DaramCam.WICImageGenerator.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="DaramCam.rc" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

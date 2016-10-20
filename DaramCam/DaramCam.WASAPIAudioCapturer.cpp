@@ -52,6 +52,10 @@ void DCWASAPIAudioCapturer::End ()
 	pAudioClient->Stop ();
 }
 
+unsigned DCWASAPIAudioCapturer::GetChannels () { return pwfx->nChannels; }
+unsigned DCWASAPIAudioCapturer::GetBitsPerSample () { return pwfx->wBitsPerSample; }
+unsigned DCWASAPIAudioCapturer::GetSamplerate () { return pwfx->nSamplesPerSec; }
+
 void * DCWASAPIAudioCapturer::GetAudioData ( unsigned * bufferLength )
 {
 	UINT32 packetLength = 0;
@@ -74,6 +78,7 @@ void * DCWASAPIAudioCapturer::GetAudioData ( unsigned * bufferLength )
 		return nullptr;
 	}
 
+	memcpy ( byteArray, pData, byteArrayLength );
 	pCaptureClient->ReleaseBuffer ( numFramesAvailable );
 
 	*bufferLength = byteArrayLength;

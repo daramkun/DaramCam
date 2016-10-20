@@ -3,10 +3,17 @@
 
 #include <Windows.h>
 #include <wincodec.h>
+#include <wincodecsdk.h>
 #include <Audioclient.h>
 #include <Mmdeviceapi.h>
-#include <string>
-#include <fstream>
+#include <mfapi.h>
+#include <mfidl.h>
+#include <mfreadwrite.h>
+#include <mferror.h>
+#include <shlwapi.h>
+#include <dxgi.h>
+#include <d3d9.h>
+#include <gl/GL.h>
 
 #if ! ( defined ( _WIN32 ) || defined ( _WIN64 ) || defined ( WINDOWS ) || defined ( _WINDOWS ) )
 #error "This library is for Windows only."
@@ -18,6 +25,12 @@
 #undef	DARAMCAM_EXPORTS
 #define	DARAMCAM_EXPORTS					__declspec(dllexport)
 #endif
+
+DARAMCAM_EXPORTS void DCStartup ();
+DARAMCAM_EXPORTS void DCShutdown ();
+DARAMCAM_EXPORTS void DCGetProcesses ( DWORD * buffer, unsigned * bufferSize );
+DARAMCAM_EXPORTS void DCGetProcessName ( DWORD pId, char * nameBuffer, unsigned nameBufferSize );
+DARAMCAM_EXPORTS HWND DCGetActiveWindowFromProcess ( DWORD pId );
 
 // 24-bit Fixed RGB Color Bitmap Data Structure
 class DARAMCAM_EXPORTS DCBitmap
@@ -39,6 +52,15 @@ public:
 public:
 	void Resize ( unsigned width, unsigned height );
 
+public:
+	COLORREF GetColorRef ( unsigned x, unsigned y );
+	void SetColorRef ( COLORREF colorRef, unsigned x, unsigned y );
+
+public:
+	void CopyFrom ( HDC hDC, HBITMAP hBitmap );
+	void CopyFrom ( IDXGISurface * dxgiSurface );
+	void CopyFrom ( IDirect3DSurface9 * d3dSurface );
+
 private:
 	unsigned char * byteArray;
 	unsigned width, height, stride;
@@ -52,24 +74,25 @@ public:
 
 public:
 	virtual void Capture () = 0;
-	virtual DCBitmap & GetCapturedBitmap () = 0;
+	virtual DCBitmap * GetCapturedBitmap () = 0;
 };
 
 // GDI Screen Capturer
 class DARAMCAM_EXPORTS DCGDIScreenCapturer : public DCScreenCapturer
 {
 public:
-	DCGDIScreenCapturer ();
+	DCGDIScreenCapturer ( HWND hWnd = NULL );
 	virtual ~DCGDIScreenCapturer ();
 
 public:
 	virtual void Capture ();
-	virtual DCBitmap & GetCapturedBitmap ();
+	virtual DCBitmap* GetCapturedBitmap ();
 
 public:
 	void SetRegion ( RECT * region = nullptr );
 
 private:
+	HWND hWnd;
 	HDC desktopDC;
 	HDC captureDC;
 	HBITMAP captureBitmap;
@@ -77,6 +100,25 @@ private:
 	RECT * captureRegion;
 
 	DCBitmap capturedBitmap;
+};
+
+// DXGI Screen Capturer
+class DARAMCAM_EXPORTS DCDXGIScreenCapturer : public DCScreenCapturer
+{
+public:
+	DCDXGIScreenCapturer ();
+	virtual ~DCDXGIScreenCapturer ();
+
+public:
+	virtual void Capture ();
+	virtual DCBitmap * GetCapturedBitmap ();
+
+public:
+	void SetRegion ( RECT * region = nullptr );
+
+private:
+	HANDLE captureProcess;
+	DCBitmap * capturedBitmap;
 };
 
 // Abstract Audio Capturer
@@ -88,6 +130,10 @@ public:
 public:
 	virtual void Begin () = 0;
 	virtual void End () = 0;
+
+	virtual unsigned GetChannels () = 0;
+	virtual unsigned GetBitsPerSample () = 0;
+	virtual unsigned GetSamplerate () = 0;
 
 	virtual void* GetAudioData ( unsigned * bufferLength ) = 0;
 };
@@ -102,6 +148,10 @@ public:
 public:
 	virtual void Begin ();
 	virtual void End ();
+
+	virtual unsigned GetChannels ();
+	virtual unsigned GetBitsPerSample ();
+	virtual unsigned GetSamplerate ();
 
 	virtual void* GetAudioData ( unsigned * bufferLength );
 
@@ -203,6 +253,7 @@ public:
 
 // Video File Generator via Windows Media Foundation
 // Can generate MP4
+// Cannot use in Windows N/KN
 class DARAMCAM_EXPORTS DCMFVideoGenerator : public DCVideoGenerator
 {
 public:
@@ -237,9 +288,11 @@ enum DCMFAudioType
 };
 
 // Audio File Generator via Windows Media Foundation
-// Can generate MP3, AAC, WMA, WAV
+// Can generate MP3, AAC, WAV
+// Cannot use in Windows N/KN
 class DARAMCAM_EXPORTS DCMFAudioGenerator : public DCAudioGenerator
 {
+	friend DWORD WINAPI MFAG_Progress ( LPVOID vg );
 public:
 	DCMFAudioGenerator ( DCMFAudioType audioType );
 	virtual ~DCMFAudioGenerator ();
@@ -249,7 +302,13 @@ public:
 	virtual void End ();
 
 private:
+	DCMFAudioType audioType;
 
+	IStream * stream;
+	DCAudioCapturer * capturer;
+
+	HANDLE threadHandle;
+	bool threadRunning;
 };
 
 #endif

@@ -1,6 +1,4 @@
 ﻿#include "DaramCam.h"
-#include <wincodecsdk.h>
-#pragma comment ( lib, "windowscodecs.lib" )
 
 DCWICVideoGenerator::DCWICVideoGenerator ( unsigned _frameTick )
 {
@@ -56,11 +54,11 @@ DWORD WINAPI WICVG_Progress ( LPVOID vg )
 	//PropVariantClear ( &propValue );
 	memset ( &propValue, 0, sizeof ( propValue ) );
 	propValue.vt = VT_UI2;
-	propValue.uiVal = ( USHORT ) videoGen->capturer->GetCapturedBitmap ().GetWidth ();
+	propValue.uiVal = ( USHORT ) videoGen->capturer->GetCapturedBitmap ()->GetWidth ();
 	queryWriter->SetMetadataByName ( TEXT ( "/logscrdesc/Width" ), &propValue );
 	memset ( &propValue, 0, sizeof ( propValue ) );
 	propValue.vt = VT_UI2;
-	propValue.uiVal = ( USHORT ) videoGen->capturer->GetCapturedBitmap ().GetHeight ();
+	propValue.uiVal = ( USHORT ) videoGen->capturer->GetCapturedBitmap ()->GetHeight ();
 	queryWriter->SetMetadataByName ( TEXT ( "/logscrdesc/Height" ), &propValue );
 	PropVariantClear ( &propValue );
 
@@ -80,7 +78,7 @@ DWORD WINAPI WICVG_Progress ( LPVOID vg )
 		hr = piBitmapFrame->Initialize ( pPropertybag );
 
 		videoGen->capturer->Capture ();
-		DCBitmap * bitmap = &videoGen->capturer->GetCapturedBitmap ();
+		DCBitmap * bitmap = videoGen->capturer->GetCapturedBitmap ();
 		piBitmapFrame->SetSize ( bitmap->GetWidth (), bitmap->GetHeight () );
 		auto bitmapSource = bitmap->ToWICBitmap ( videoGen->piFactory );
 

@@ -1,7 +1,11 @@
+#define _CRT_SECURE_NO_WARNINGS
 #include <DaramCam.h>
 #pragma comment ( lib, "DaramCam.lib" )
 
-class FileStream : public IStream
+#include <stdio.h>
+#include <string.h>
+
+class FileStream : public IStream, IMFByteStream
 {
 	FileStream ( HANDLE hFile )
 	{
@@ -14,6 +18,7 @@ class FileStream : public IStream
 		if ( _hFile != INVALID_HANDLE_VALUE )
 		{
 			::CloseHandle ( _hFile );
+			_hFile = NULL;
 		}
 	}
 
@@ -41,6 +46,12 @@ public:
 			|| iid == __uuidof( ISequentialStream ) )
 		{
 			*ppvObject = static_cast<IStream*>( this );
+			AddRef ();
+			return S_OK;
+		}
+		else if ( iid == __uuidof ( IMFByteStream ) )
+		{
+			*ppvObject = static_cast< IMFByteStream* >( this );
 			AddRef ();
 			return S_OK;
 		}
@@ -77,41 +88,19 @@ public:
 
 	// IStream Interface
 public:
-	virtual HRESULT STDMETHODCALLTYPE SetSize ( ULARGE_INTEGER )
-	{
-		return E_NOTIMPL;
-	}
+	virtual HRESULT STDMETHODCALLTYPE SetSize ( ULARGE_INTEGER ) { return E_NOTIMPL; }
 
-	virtual HRESULT STDMETHODCALLTYPE CopyTo ( IStream*, ULARGE_INTEGER, ULARGE_INTEGER*,
-		ULARGE_INTEGER* )
-	{
-		return E_NOTIMPL;
-	}
+	virtual HRESULT STDMETHODCALLTYPE CopyTo ( IStream*, ULARGE_INTEGER, ULARGE_INTEGER*, ULARGE_INTEGER* ) { return E_NOTIMPL; }
 
-	virtual HRESULT STDMETHODCALLTYPE Commit ( DWORD )
-	{
-		return E_NOTIMPL;
-	}
+	virtual HRESULT STDMETHODCALLTYPE Commit ( DWORD ) { return E_NOTIMPL; }
 
-	virtual HRESULT STDMETHODCALLTYPE Revert ( void )
-	{
-		return E_NOTIMPL;
-	}
+	virtual HRESULT STDMETHODCALLTYPE Revert ( void ) { return E_NOTIMPL; }
 
-	virtual HRESULT STDMETHODCALLTYPE LockRegion ( ULARGE_INTEGER, ULARGE_INTEGER, DWORD )
-	{
-		return E_NOTIMPL;
-	}
+	virtual HRESULT STDMETHODCALLTYPE LockRegion ( ULARGE_INTEGER, ULARGE_INTEGER, DWORD ) { return E_NOTIMPL; }
 
-	virtual HRESULT STDMETHODCALLTYPE UnlockRegion ( ULARGE_INTEGER, ULARGE_INTEGER, DWORD )
-	{
-		return E_NOTIMPL;
-	}
+	virtual HRESULT STDMETHODCALLTYPE UnlockRegion ( ULARGE_INTEGER, ULARGE_INTEGER, DWORD ) { return E_NOTIMPL; }
 
-	virtual HRESULT STDMETHODCALLTYPE Clone ( IStream ** )
-	{
-		return E_NOTIMPL;
-	}
+	virtual HRESULT STDMETHODCALLTYPE Clone ( IStream ** ) { return E_NOTIMPL; }
 
 	virtual HRESULT STDMETHODCALLTYPE Seek ( LARGE_INTEGER liDistanceToMove, DWORD dwOrigin,
 		ULARGE_INTEGER* lpNewFilePointer )
@@ -148,39 +137,161 @@ public:
 	}
 
 private:
+	virtual HRESULT STDMETHODCALLTYPE GetCapabilities ( __RPC__out DWORD *pdwCapabilities ) { return E_NOTIMPL; }
+
+	virtual HRESULT STDMETHODCALLTYPE GetLength ( __RPC__out QWORD *pqwLength )
+	{
+		DWORD c;
+		GetFileSize ( _hFile, &c );
+		*pqwLength = c;
+		return S_OK;
+	}
+
+	virtual HRESULT STDMETHODCALLTYPE SetLength ( QWORD qwLength ) { return E_NOTIMPL; }
+
+	virtual HRESULT STDMETHODCALLTYPE GetCurrentPosition ( __RPC__out QWORD *pqwPosition )
+	{
+		LARGE_INTEGER liOfs = { 0 };
+		LARGE_INTEGER liNew = { 0 };
+		SetFilePointerEx ( _hFile, liOfs, &liNew, FILE_CURRENT );
+		*pqwPosition = liNew.QuadPart;
+		return S_OK;
+	}
+
+	virtual HRESULT STDMETHODCALLTYPE SetCurrentPosition ( QWORD qwPosition )
+	{
+		LARGE_INTEGER li;
+		li.QuadPart = qwPosition;
+		return Seek ( li, SEEK_SET, nullptr );
+	}
+
+	virtual HRESULT STDMETHODCALLTYPE IsEndOfStream ( __RPC__out BOOL *pfEndOfStream )
+	{
+		LARGE_INTEGER pos, size;
+		LARGE_INTEGER li = { 0, };
+		if ( !SetFilePointerEx ( _hFile, li, &pos, FILE_CURRENT ) )
+			return HRESULT_FROM_WIN32 ( GetLastError () );
+		if ( !GetFileSizeEx ( _hFile, &size ) )
+			return HRESULT_FROM_WIN32 ( GetLastError () );
+		*pfEndOfStream = ( pos.QuadPart == size.QuadPart );
+		return S_OK;
+	}
+
+	virtual HRESULT STDMETHODCALLTYPE Read ( __RPC__out_ecount_full ( cb ) BYTE *pb, ULONG cb, __RPC__out ULONG *pcbRead )
+	{
+		return Read ( ( void* ) pb, cb, pcbRead );
+	}
+
+	virtual /* [local] */ HRESULT STDMETHODCALLTYPE BeginRead ( _Out_writes_bytes_ ( cb )  BYTE *pb, ULONG cb, IMFAsyncCallback *pCallback, IUnknown *punkState ) { return E_NOTIMPL; }
+
+	virtual /* [local] */ HRESULT STDMETHODCALLTYPE EndRead ( IMFAsyncResult *pResult, _Out_  ULONG *pcbRead ) { return E_NOTIMPL; }
+
+	virtual HRESULT STDMETHODCALLTYPE Write ( __RPC__in_ecount_full ( cb ) const BYTE *pb, ULONG cb, __RPC__out ULONG *pcbWritten )
+	{
+		return Write ( ( void* ) pb, cb, pcbWritten );
+	}
+
+	virtual /* [local] */ HRESULT STDMETHODCALLTYPE BeginWrite ( _In_reads_bytes_ ( cb ) const BYTE *pb, ULONG cb, IMFAsyncCallback *pCallback, IUnknown *punkState ) { return E_NOTIMPL; }
+
+	virtual /* [local] */ HRESULT STDMETHODCALLTYPE EndWrite ( IMFAsyncResult *pResult, _Out_  ULONG *pcbWritten ) { return E_NOTIMPL; }
+
+	virtual HRESULT STDMETHODCALLTYPE Seek ( MFBYTESTREAM_SEEK_ORIGIN SeekOrigin, LONGLONG llSeekOffset, DWORD dwSeekFlags, __RPC__out QWORD *pqwCurrentPosition )
+	{
+		LARGE_INTEGER li;
+		li.QuadPart = llSeekOffset;
+		ULARGE_INTEGER uli;
+		HRESULT hr = Seek ( li, 0, &uli );
+		if ( hr != S_OK ) return hr;
+
+		if ( pqwCurrentPosition )
+			*pqwCurrentPosition = uli.QuadPart;
+
+		return S_OK;
+	}
+
+	virtual HRESULT STDMETHODCALLTYPE Flush ( void ) { FlushFileBuffers ( _hFile ); return S_OK; }
+
+	virtual HRESULT STDMETHODCALLTYPE Close ( void ) { return E_NOTIMPL; }
+
+private:
 	HANDLE _hFile;
 	LONG _refcount;
 };
 
 int main ( void )
 {
-	CoInitialize ( nullptr );
+	
 
-	DCGDICapturer * capturer = new DCGDICapturer ();
-	RECT region = { 1920, 0, 1920 * 2, 1080 };
-	capturer->SetRegion ( &region );
-	capturer->Capture ();
+	DCStartup ();
+
+	DWORD processes [ 4096 ] = { 0, };
+	unsigned processCount;
+	DCGetProcesses ( processes, &processCount );
+
+	for ( unsigned i = 0; i < processCount; ++i )
+	{
+		DWORD process = processes [ i ];
+		HWND hWnd = DCGetActiveWindowFromProcess ( process );
+		if ( process == 0 || hWnd == 0 ) continue;
+		char nameBuffer [ 4096 ] = { 0, };
+		DCGetProcessName ( process, nameBuffer, 4096 );
+		if ( strlen ( nameBuffer ) == 0 )
+			continue;
+
+		printf ( "%48s (DWORD: %5d, HWND: %d)\n", nameBuffer, process, hWnd );
+	}
+
+	DWORD process;
+	printf ( "Select process (0 is default process): " );
+	scanf ( "%d", &process );
+
+	HWND hWnd;
+	if ( process == 0 )
+		hWnd = NULL;
+	else
+		hWnd = DCGetActiveWindowFromProcess ( process );
 
 	IStream * stream;
 	FileStream::OpenFile ( TEXT ( "Test.png" ), &stream, true );
 
+	DCGDIScreenCapturer * screenCapturer = new DCGDIScreenCapturer ( hWnd );
+	//RECT region = { 1920, 0, 1920 * 2, 1080 };
+	//screenCapturer->SetRegion ( &region );
+	screenCapturer->Capture ();
+
 	DCImageGenerator * imgGen = new DCWICImageGenerator ( DCWICImageType_PNG );
-	imgGen->Generate ( stream, &capturer->GetCapturedBitmap () );
+	imgGen->Generate ( stream, screenCapturer->GetCapturedBitmap () );
 
 	stream->Release ();
 
+	delete imgGen;
 
 	FileStream::OpenFile ( TEXT ( "Test.gif" ), &stream, true );
 
 	DCVideoGenerator * vidGen = new DCWICVideoGenerator ( 16 );
-	vidGen->Begin ( stream, capturer );
-	Sleep ( 10000 );
+	vidGen->Begin ( stream, screenCapturer );
+	Sleep ( 1000 );
 	vidGen->End ();
 	stream->Release ();
 
-	delete capturer;
+	delete vidGen;
 
-	CoUninitialize ();
+	delete screenCapturer;
+
+
+	/*DCWASAPIAudioCapturer * audioCapturer = new DCWASAPIAudioCapturer ();
+
+	FileStream::OpenFile ( TEXT ( "Test.mp3" ), &stream, true );
+
+	DCAudioGenerator * audGen = new DCMFAudioGenerator ( DCMFAudioType_MP3 );
+
+	audGen->Begin ( stream, audioCapturer );
+	Sleep ( 10000 );
+	audGen->End ();
+
+	delete audioCapturer;*/
+
+	DCShutdown ();
 
 	return 0;
 }

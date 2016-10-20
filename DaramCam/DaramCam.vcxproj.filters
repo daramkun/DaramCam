@@ -18,15 +18,12 @@
     <ClInclude Include="DaramCam.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
+    <ClInclude Include="resource.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="DaramCam.Bitmap.cpp">
-      <Filter>소스 파일</Filter>
-    </ClCompile>
-    <ClCompile Include="DaramCam.ImageGenerator.cpp">
-      <Filter>소스 파일</Filter>
-    </ClCompile>
-    <ClCompile Include="DaramCam.VideoGenerator.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
     <ClCompile Include="DaramCam.WICImageGenerator.cpp">
@@ -47,5 +44,22 @@
     <ClCompile Include="DaramCam.WASAPIAudioCapturer.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
+    <ClCompile Include="DaramCam.Generator.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="DaramCam.MFAudioGenerator.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="DaramCam.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="DaramCam.DXGIScreenCapturer.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="DaramCam.rc">
+      <Filter>리소스 파일</Filter>
+    </ResourceCompile>
   </ItemGroup>
 </Project>
