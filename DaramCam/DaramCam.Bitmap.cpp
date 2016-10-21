@@ -42,7 +42,7 @@ IWICBitmap * DCBitmap::ToWICBitmap ( IWICImagingFactory * factory )
 	{
 		int pos1 = i * wicStride;
 		int pos2 = i * stride;
-		memcpy ( ptr + ( pos1 ), byteArray + ( pos2 ), stride );
+		memcpy ( ptr + ( pos1 ), byteArray + ( pos2 ), min ( stride, wicStride ) );
 	}
 	bitmapLock->Release ();
 
