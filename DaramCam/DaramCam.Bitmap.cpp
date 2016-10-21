@@ -20,7 +20,7 @@ unsigned DCBitmap::GetStride () { return stride; }
 
 unsigned DCBitmap::GetByteArraySize ()
 {
-	return width * height * 3;
+	return ( ( ( stride + 3 ) / 4 ) * 4 ) * height;
 }
 
 IWICBitmap * DCBitmap::ToWICBitmap ( IWICImagingFactory * factory )
@@ -34,8 +34,16 @@ IWICBitmap * DCBitmap::ToWICBitmap ( IWICImagingFactory * factory )
 
 	unsigned arrLen = GetByteArraySize ();
 	WICInProcPointer ptr;
+	unsigned wicStride = 0;
 	bitmapLock->GetDataPointer ( &arrLen, &ptr );
-	memcpy ( ptr, byteArray, arrLen );
+	bitmapLock->GetStride ( &wicStride );
+	//memcpy ( ptr, byteArray, arrLen );
+	for ( unsigned i = 0; i < height; ++i )
+	{
+		int pos1 = i * wicStride;
+		int pos2 = i * stride;
+		memcpy ( ptr + ( pos1 ), byteArray + ( pos2 ), stride );
+	}
 	bitmapLock->Release ();
 
 	return bitmap;
@@ -43,12 +51,13 @@ IWICBitmap * DCBitmap::ToWICBitmap ( IWICImagingFactory * factory )
 
 void DCBitmap::Resize ( unsigned _width, unsigned _height )
 {
-	if ( _width == 0 && _height == 0 ) return;
+	if ( _width == width && _height == _height ) return;
 	if ( byteArray ) delete [] byteArray;
+	if ( _width == 0 && _height == 0 ) { byteArray = nullptr; return; }
 
 	width = _width; height = _height;
 	stride = ( _width * 24 + 7 ) / 8;
-	byteArray = new unsigned char [ stride * height ];
+	byteArray = new unsigned char [ GetByteArraySize () ];
 }
 
 COLORREF DCBitmap::GetColorRef ( unsigned x, unsigned y )
@@ -65,18 +74,6 @@ void DCBitmap::SetColorRef ( COLORREF colorRef, unsigned x, unsigned y )
 	byteArray [ basePos + 2 ] = GetBValue ( colorRef );
 }
 
-void GetImageDataFromHBITMAP ( HDC hdc, HBITMAP bitmap, DCBitmap * cb )
-{
-	BITMAPINFO bmpInfo;
-	memset ( &bmpInfo, 0, sizeof ( BITMAPINFOHEADER ) );
-	bmpInfo.bmiHeader.biSize = sizeof ( BITMAPINFOHEADER );
-	GetDIBits ( hdc, bitmap, 0, 0, NULL, &bmpInfo, DIB_RGB_COLORS );
-	bmpInfo.bmiHeader.biBitCount = 24;
-	bmpInfo.bmiHeader.biCompression = BI_RGB;
-	for ( unsigned i = 0; i < cb->GetHeight (); ++i )
-		GetDIBits ( hdc, bitmap, i, 1, ( cb->GetByteArray () + ( ( cb->GetHeight () - 1 - i ) * cb->GetStride () ) ), &bmpInfo, DIB_RGB_COLORS );
-}
-
 void DCBitmap::CopyFrom ( HDC hDC, HBITMAP hBitmap )
 {
 	BITMAPINFO bmpInfo = { 0, };
@@ -87,7 +84,7 @@ void DCBitmap::CopyFrom ( HDC hDC, HBITMAP hBitmap )
 	bmpInfo.bmiHeader.biBitCount = 24;
 	bmpInfo.bmiHeader.biCompression = BI_RGB;
 	for ( unsigned i = 0; i < height; ++i )
-		GetDIBits ( hDC, hBitmap, i, 1, ( GetByteArray () + ( ( GetHeight () - 1 - i ) * GetStride () ) ), &bmpInfo, DIB_RGB_COLORS );
+		GetDIBits ( hDC, hBitmap, i, 1, ( byteArray + ( ( height - 1 - i ) * stride ) ), &bmpInfo, DIB_RGB_COLORS );
 }
 
 void DCBitmap::CopyFrom ( IDXGISurface * dxgiSurface )

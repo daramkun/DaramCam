@@ -4,7 +4,7 @@
 DCGDIScreenCapturer::DCGDIScreenCapturer ( HWND hWnd )
 	: capturedBitmap ( 0, 0 ), hWnd ( hWnd )
 {
-	desktopDC = /*hWnd == NULL ? */GetDC ( hWnd );// : GetWindowDC ( hWnd );
+	desktopDC = GetDC ( hWnd );
 	captureDC = CreateCompatibleDC ( desktopDC );
 	SetRegion ( nullptr );
 }
@@ -24,10 +24,12 @@ void DCGDIScreenCapturer::Capture ()
 		BitBlt ( captureDC, 0, 0, capturedBitmap.GetWidth (), capturedBitmap.GetHeight (), desktopDC, 0, 0, SRCCOPY );
 	}
 	else
+	{
 		BitBlt ( captureDC,
 			0, 0,
 			captureRegion->right - captureRegion->left, captureRegion->bottom - captureRegion->top,
 			desktopDC, captureRegion->left, captureRegion->top, SRCCOPY );
+	}
 	SelectObject ( captureDC, oldBitmap );
 	
 	capturedBitmap.CopyFrom ( captureDC, captureBitmap );

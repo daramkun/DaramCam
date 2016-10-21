@@ -52,7 +52,7 @@ DARAMCAM_EXPORTS HWND DCGetActiveWindowFromProcess ( DWORD pId )
 		DWORD pId;
 		ENUMWINDOWPARAM * param = ( ENUMWINDOWPARAM* ) lParam;
 		GetWindowThreadProcessId ( hWnd, &pId );
-		if ( param->process != pId || ( GetWindow ( hWnd, GW_OWNER ) == 0 && IsWindowVisible ( hWnd ) ) )
+		if ( param->process != pId || !( GetWindow ( hWnd, GW_OWNER ) == 0 && IsWindowVisible ( hWnd ) ) || GetWindowLong(hWnd, WS_CHILD ) )
 			return 1;
 
 		RECT cr;
@@ -75,10 +75,14 @@ DARAMCAM_EXPORTS HWND DCGetActiveWindowFromProcess ( DWORD pId )
 			return 0;
 		}, ( LPARAM ) &hasChild );
 
+		if ( !param->returnHWND )
+			param->returnHWND = hWnd;
+
 		if ( hasChild )
 			return 1;
 
 		param->returnHWND = hWnd;
+
 		return 0;
 	}, ( LPARAM ) &lParam );
 	return lParam.returnHWND;
