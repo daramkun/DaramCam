@@ -14,6 +14,9 @@
 #pragma comment ( lib, "Kernel32.lib" )
 #pragma comment ( lib, "Psapi.lib" )
 
+#include <d3d11.h>
+#pragma comment ( lib, "d3d11.lib" )
+
 void DCStartup ()
 {
 	CoInitializeEx ( NULL, COINIT_APARTMENTTHREADED );

@@ -220,11 +220,9 @@ private:
 
 int main ( void )
 {
-	
-
 	DCStartup ();
 
-	DWORD processes [ 4096 ] = { 0, };
+	/*DWORD processes [ 4096 ] = { 0, };
 	unsigned processCount;
 	DCGetProcesses ( processes, &processCount );
 
@@ -249,14 +247,15 @@ int main ( void )
 	if ( process == 0 )
 		hWnd = NULL;
 	else
-		hWnd = DCGetActiveWindowFromProcess ( process );
+		hWnd = DCGetActiveWindowFromProcess ( process );*/
 
 	IStream * stream;
-	FileStream::OpenFile ( TEXT ( "Test.png" ), &stream, true );
+	/*FileStream::OpenFile ( TEXT ( "Z:\\Test.png" ), &stream, true );
 
-	DCGDIScreenCapturer * screenCapturer = new DCGDIScreenCapturer ( hWnd );
-	//RECT region = { 1920, 0, 1920 * 2, 1080 };
-	//screenCapturer->SetRegion ( &region );
+	//DCGDIScreenCapturer * screenCapturer = new DCGDIScreenCapturer ( hWnd );
+	DCDXGIScreenCapturer * screenCapturer = new DCDXGIScreenCapturer ();
+	RECT region = { 1920, 0, 1920 * 2, 1080 };
+	screenCapturer->SetRegion ( &region );
 	screenCapturer->Capture ();
 
 	DCImageGenerator * imgGen = new DCWICImageGenerator ( DCWICImageType_PNG );
@@ -266,22 +265,21 @@ int main ( void )
 
 	delete imgGen;
 
-	FileStream::OpenFile ( TEXT ( "Test.gif" ), &stream, true );
+	FileStream::OpenFile ( TEXT ( "Z:\\Test.gif" ), &stream, true );
 
 	DCVideoGenerator * vidGen = new DCWICVideoGenerator ( 16 );
 	vidGen->Begin ( stream, screenCapturer );
-	Sleep ( 1000 );
+	Sleep ( 10000 );
 	vidGen->End ();
 	stream->Release ();
 
 	delete vidGen;
 
-	delete screenCapturer;
+	delete screenCapturer;*/
 
+	DCWASAPIAudioCapturer * audioCapturer = new DCWASAPIAudioCapturer ();
 
-	/*DCWASAPIAudioCapturer * audioCapturer = new DCWASAPIAudioCapturer ();
-
-	FileStream::OpenFile ( TEXT ( "Test.mp3" ), &stream, true );
+	FileStream::OpenFile ( TEXT ( "Z:\\Test.mp3" ), &stream, true );
 
 	DCAudioGenerator * audGen = new DCMFAudioGenerator ( DCMFAudioType_MP3 );
 
@@ -289,7 +287,7 @@ int main ( void )
 	Sleep ( 10000 );
 	audGen->End ();
 
-	delete audioCapturer;*/
+	delete audioCapturer;
 
 	DCShutdown ();
 

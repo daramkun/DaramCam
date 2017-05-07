@@ -69,9 +69,7 @@ COLORREF DCBitmap::GetColorRef ( unsigned x, unsigned y )
 void DCBitmap::SetColorRef ( COLORREF colorRef, unsigned x, unsigned y )
 {
 	unsigned basePos = ( x * 3 ) + ( y * stride );
-	byteArray [ basePos + 0 ] = GetRValue ( colorRef );
-	byteArray [ basePos + 1 ] = GetGValue ( colorRef );
-	byteArray [ basePos + 2 ] = GetBValue ( colorRef );
+	memcpy ( byteArray + basePos, &colorRef, 3 );
 }
 
 void DCBitmap::CopyFrom ( HDC hDC, HBITMAP hBitmap )
@@ -94,17 +92,22 @@ void DCBitmap::CopyFrom ( IDXGISurface * dxgiSurface )
 	if ( width != surfaceDesc.Width || height != surfaceDesc.Height )
 		Resize ( surfaceDesc.Width, surfaceDesc.Height );
 	DXGI_MAPPED_RECT dxgiMappedRect;
-	dxgiSurface->Map ( &dxgiMappedRect, DXGI_MAP_READ );
+	HRESULT hr = dxgiSurface->Map ( &dxgiMappedRect, DXGI_MAP_READ );
 	for ( unsigned y = 0; y < surfaceDesc.Height; ++y )
 	{
 		for ( unsigned x = 0; x < surfaceDesc.Width; ++x )
 		{
 			unsigned basePos;
+			COLORREF colorRef;
 			switch ( surfaceDesc.Format )
 			{
 			case DXGI_FORMAT_R8G8B8A8_UNORM:
 				basePos = y * dxgiMappedRect.Pitch + ( x * 4 );
-				COLORREF colorRef = RGB ( dxgiMappedRect.pBits [ basePos + 0 ], dxgiMappedRect.pBits [ basePos + 1 ], dxgiMappedRect.pBits [ basePos + 2 ] );
+				colorRef = RGB ( dxgiMappedRect.pBits [ basePos + 0 ], dxgiMappedRect.pBits [ basePos + 1 ], dxgiMappedRect.pBits [ basePos + 2 ] );
+				SetColorRef ( colorRef, x, y );
+			case DXGI_FORMAT_B8G8R8A8_UNORM:
+				basePos = y * dxgiMappedRect.Pitch + ( x * 4 );
+				colorRef = RGB ( dxgiMappedRect.pBits [ basePos + 3 ], dxgiMappedRect.pBits [ basePos + 2 ], dxgiMappedRect.pBits [ basePos + 1 ] );
 				SetColorRef ( colorRef, x, y );
 			break;
 			}

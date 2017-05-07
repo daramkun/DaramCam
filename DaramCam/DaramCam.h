@@ -12,6 +12,7 @@
 #include <mferror.h>
 #include <shlwapi.h>
 #include <dxgi.h>
+#include <dxgi1_2.h>
 #include <d3d9.h>
 #include <gl/GL.h>
 
@@ -117,8 +118,11 @@ public:
 	void SetRegion ( RECT * region = nullptr );
 
 private:
-	HANDLE captureProcess;
-	DCBitmap * capturedBitmap;
+	void* dxgiManager;
+	BYTE* tempBits;
+
+	RECT * captureRegion;
+	DCBitmap capturedBitmap;
 };
 
 // Abstract Audio Capturer
@@ -165,6 +169,10 @@ private:
 
 	char * byteArray;
 	unsigned byteArrayLength;
+
+	UINT32 bufferFrameCount;
+
+	HANDLE hWakeUp;
 };
 
 // Abstract Image File Generator
@@ -241,8 +249,6 @@ private:
 enum DCMFContainerType
 {
 	DCMFContainerType_MP4,
-	DCMFContainerType_WMV,
-	DCMFContainerType_AVI,
 };
 
 struct DCMFVideoConfig
@@ -265,6 +271,10 @@ public:
 	virtual void End ();
 
 private:
+	IMFTranscodeProfile * pProfile;
+	IMFMediaSource * pSource;
+	IMFTopology * pTopology;
+
 	DCMFVideoConfig videoConfig;
 };
 

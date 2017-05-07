@@ -13,6 +13,12 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="External Libraries">
+      <UniqueIdentifier>{e02486f7-d227-4cf8-9a51-07517a9de31c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="External Libraries\DXGIManager">
+      <UniqueIdentifier>{f14567b7-65b5-4fc4-bd30-bf91b83dacdd}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="DaramCam.h">
@@ -20,6 +26,9 @@
     </ClInclude>
     <ClInclude Include="resource.h">
       <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="External Libraries\DXGIManager\DXGIManager.h">
+      <Filter>External Libraries\DXGIManager</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -55,6 +64,9 @@
     </ClCompile>
     <ClCompile Include="DaramCam.DXGIScreenCapturer.cpp">
       <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="External Libraries\DXGIManager\DXGIManager.cpp">
+      <Filter>External Libraries\DXGIManager</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

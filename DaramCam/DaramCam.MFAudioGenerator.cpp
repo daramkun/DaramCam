@@ -15,12 +15,14 @@ DWORD WINAPI MFAG_Progress ( LPVOID ag )
 {
 	DCMFAudioGenerator * audioGen = ( DCMFAudioGenerator* ) ag;
 
+	HRESULT hr;
+
 	IMFByteStream * byteStream = NULL;
 	//HRESULT hr = MFCreateMFByteStreamOnStream ( audioGen->stream, &byteStream );
-	audioGen->stream->QueryInterface ( __uuidof( IMFByteStream ), ( void** ) &byteStream );
+	hr = audioGen->stream->QueryInterface ( __uuidof( IMFByteStream ), ( void** ) &byteStream );
 
 	IMFMediaType * mediaType;
-	MFCreateMediaType ( &mediaType );
+	hr = MFCreateMediaType ( &mediaType );
 	mediaType->SetGUID ( MF_MT_MAJOR_TYPE, MFMediaType_Audio );
 	switch ( audioGen->audioType )
 	{
@@ -28,9 +30,9 @@ DWORD WINAPI MFAG_Progress ( LPVOID ag )
 		mediaType->SetGUID ( MF_MT_SUBTYPE, MFAudioFormat_MP3 );
 		mediaType->SetUINT32 ( MF_MT_AUDIO_AVG_BYTES_PER_SECOND, 320 );
 		break;
-		//case DCMFAudioType_WAV:
-		//	mediaType->SetGUID ( MF_MT_SUBTYPE, MFAudioFormat_PCM );
-		//	break;
+	case DCMFAudioType_WAV:
+		mediaType->SetGUID ( MF_MT_SUBTYPE, MFAudioFormat_PCM );
+		break;
 	case DCMFAudioType_AAC:
 		mediaType->SetGUID ( MF_MT_SUBTYPE, MFAudioFormat_AAC );
 		mediaType->SetUINT32 ( MF_MT_AUDIO_AVG_BYTES_PER_SECOND, 24000 );
@@ -45,35 +47,41 @@ DWORD WINAPI MFAG_Progress ( LPVOID ag )
 	IMFMediaSink * mediaSink = nullptr;
 	switch ( audioGen->audioType )
 	{
-	case DCMFAudioType_MP3: MFCreateMP3MediaSink ( byteStream, &mediaSink ); break;
-		//case DCMFAudioType_WAV: MFCreateWAVEMediaSink ( byteStream, mediaType, &mediaSink ); break;
-	case DCMFAudioType_AAC: MFCreateADTSMediaSink ( byteStream, mediaType, &mediaSink ); break;
+	case DCMFAudioType_MP3: hr = MFCreateMP3MediaSink ( byteStream, &mediaSink ); break;
+	//case DCMFAudioType_WAV: hr = MFCreateWAVEMediaSink ( byteStream, mediaType, &mediaSink ); break;
+	case DCMFAudioType_AAC: hr = MFCreateADTSMediaSink ( byteStream, mediaType, &mediaSink ); break;
 	}
 	IMFSinkWriter * sinkWriter;
-	MFCreateSinkWriterFromMediaSink ( mediaSink, nullptr, &sinkWriter );
+	hr = MFCreateSinkWriterFromMediaSink ( mediaSink, nullptr, &sinkWriter );
 
 	mediaType->Release ();
 
 	DCAudioCapturer * capturer = audioGen->capturer;
 	capturer->Begin ();
-	sinkWriter->BeginWriting ();
-	unsigned frameCount = 0;
+
+	DWORD frameCount = 0;
+	hr = sinkWriter->AddStream ( mediaType, &frameCount );
+
+	hr = sinkWriter->BeginWriting ();
+
 	while ( audioGen->threadRunning )
 	{
-		Sleep ( 100 );
 		unsigned bufferLength;
 		void * audioData = capturer->GetAudioData ( &bufferLength );
+
 		IMFSample * sample;
-		MFCreateSample ( &sample );
+		hr = MFCreateSample ( &sample );
 		IMFMediaBuffer * buffer;
-		MFCreateMemoryBuffer ( bufferLength, &buffer );
+		hr = MFCreateMemoryBuffer ( bufferLength, &buffer );
+		
 		BYTE * pBuffer;
-		buffer->Lock ( &pBuffer, nullptr, nullptr );
+		hr = buffer->Lock ( &pBuffer, nullptr, nullptr );
 		memcpy ( pBuffer, audioData, bufferLength );
-		buffer->Unlock ();
-		sample->AddBuffer ( buffer );
-		sinkWriter->WriteSample ( frameCount, sample );
-		sinkWriter->Flush ( frameCount++ );
+		hr = buffer->Unlock ();
+
+		hr = sample->AddBuffer ( buffer );
+		hr = sinkWriter->WriteSample ( frameCount, sample );
+		hr = sinkWriter->Flush ( frameCount );
 		sample->Release ();
 		buffer->Release ();
 		printf ( "%d(%d), %d\n", frameCount, bufferLength, audioGen->threadRunning );

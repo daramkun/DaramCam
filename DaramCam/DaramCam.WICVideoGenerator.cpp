@@ -1,5 +1,7 @@
 ﻿#include "DaramCam.h"
 
+#pragma comment ( lib, "winmm.lib" )
+
 DCWICVideoGenerator::DCWICVideoGenerator ( unsigned _frameTick )
 {
 	CoCreateInstance ( CLSID_WICImagingFactory, NULL, CLSCTX_INPROC_SERVER, IID_IWICImagingFactory, ( LPVOID* ) &piFactory );
@@ -67,36 +69,42 @@ DWORD WINAPI WICVG_Progress ( LPVOID vg )
 	IWICBitmapFrameEncode *piBitmapFrame = NULL;
 	IPropertyBag2 *pPropertybag = NULL;
 
+	DWORD lastTick, currentTick;
+	lastTick = currentTick = timeGetTime ();
 	while ( videoGen->threadRunning )
 	{
-		hr = piEncoder->CreateNewFrame ( &piBitmapFrame, &pPropertybag );
-		if ( hr != S_OK )
+		if ( ( currentTick = timeGetTime () ) - lastTick >= videoGen->frameTick )
 		{
-			videoGen->threadRunning = false;
-			continue;
+			hr = piEncoder->CreateNewFrame ( &piBitmapFrame, &pPropertybag );
+			if ( hr != S_OK )
+			{
+				videoGen->threadRunning = false;
+				continue;
+			}
+			hr = piBitmapFrame->Initialize ( pPropertybag );
+
+			videoGen->capturer->Capture ();
+			DCBitmap * bitmap = videoGen->capturer->GetCapturedBitmap ();
+			piBitmapFrame->SetSize ( bitmap->GetWidth (), bitmap->GetHeight () );
+			auto bitmapSource = bitmap->ToWICBitmap ( videoGen->piFactory );
+
+			piBitmapFrame->WriteSource ( bitmapSource, nullptr );
+
+			piBitmapFrame->GetMetadataQueryWriter ( &queryWriter );
+			piBitmapFrame->Commit ();
+
+			memset ( &propValue, 0, sizeof ( propValue ) );
+			propValue.vt = VT_UI2;
+			propValue.uiVal = videoGen->frameTick/* / 10*/;
+			queryWriter->SetMetadataByName ( TEXT ( "/grctlext/Delay" ), &propValue );
+			queryWriter->Release ();
+
+			piBitmapFrame->Release ();
+			bitmapSource->Release ();
+
+			lastTick = currentTick;
 		}
-		hr = piBitmapFrame->Initialize ( pPropertybag );
-
-		videoGen->capturer->Capture ();
-		DCBitmap * bitmap = videoGen->capturer->GetCapturedBitmap ();
-		piBitmapFrame->SetSize ( bitmap->GetWidth (), bitmap->GetHeight () );
-		auto bitmapSource = bitmap->ToWICBitmap ( videoGen->piFactory );
-
-		piBitmapFrame->WriteSource ( bitmapSource, nullptr );
-
-		piBitmapFrame->GetMetadataQueryWriter ( &queryWriter );
-		piBitmapFrame->Commit ();
-
-		memset ( &propValue, 0, sizeof ( propValue ) );
-		propValue.vt = VT_UI2;
-		propValue.uiVal = videoGen->frameTick / 10;
-		queryWriter->SetMetadataByName ( TEXT ( "/grctlext/Delay" ), &propValue );
-		queryWriter->Release ();
-
-		piBitmapFrame->Release ();
-		bitmapSource->Release ();
-
-		Sleep ( videoGen->frameTick );
+		//Sleep ( videoGen->frameTick );
 	}
 
 	piEncoder->Commit ();
