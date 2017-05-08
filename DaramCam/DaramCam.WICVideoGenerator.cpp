@@ -53,7 +53,6 @@ DWORD WINAPI WICVG_Progress ( LPVOID vg )
 	queryWriter->SetMetadataByName ( TEXT ( "/appext/Data" ), &propValue );
 	delete [] propValue.caub.pElems;
 
-	//PropVariantClear ( &propValue );
 	memset ( &propValue, 0, sizeof ( propValue ) );
 	propValue.vt = VT_UI2;
 	propValue.uiVal = ( USHORT ) videoGen->capturer->GetCapturedBitmap ()->GetWidth ();
@@ -69,19 +68,23 @@ DWORD WINAPI WICVG_Progress ( LPVOID vg )
 	IWICBitmapFrameEncode *piBitmapFrame = NULL;
 	IPropertyBag2 *pPropertybag = NULL;
 
+	memset ( &propValue, 0, sizeof ( propValue ) );
+	propValue.vt = VT_UI2;
+	//propValue.uiVal = videoGen->frameTick / 100;
+
 	DWORD lastTick, currentTick;
 	lastTick = currentTick = timeGetTime ();
 	while ( videoGen->threadRunning )
 	{
 		if ( ( currentTick = timeGetTime () ) - lastTick >= videoGen->frameTick )
 		{
-			hr = piEncoder->CreateNewFrame ( &piBitmapFrame, &pPropertybag );
+			piEncoder->CreateNewFrame ( &piBitmapFrame, &pPropertybag );
 			if ( hr != S_OK )
 			{
 				videoGen->threadRunning = false;
 				continue;
 			}
-			hr = piBitmapFrame->Initialize ( pPropertybag );
+			piBitmapFrame->Initialize ( pPropertybag );
 
 			videoGen->capturer->Capture ();
 			DCBitmap * bitmap = videoGen->capturer->GetCapturedBitmap ();
@@ -93,18 +96,15 @@ DWORD WINAPI WICVG_Progress ( LPVOID vg )
 			piBitmapFrame->GetMetadataQueryWriter ( &queryWriter );
 			piBitmapFrame->Commit ();
 
-			memset ( &propValue, 0, sizeof ( propValue ) );
-			propValue.vt = VT_UI2;
-			propValue.uiVal = videoGen->frameTick/* / 10*/;
+			propValue.uiVal = ( WORD ) ( ( currentTick - lastTick ) / 10 );
 			queryWriter->SetMetadataByName ( TEXT ( "/grctlext/Delay" ), &propValue );
 			queryWriter->Release ();
 
 			piBitmapFrame->Release ();
-			bitmapSource->Release ();
+			//bitmapSource->Release ();
 
 			lastTick = currentTick;
 		}
-		//Sleep ( videoGen->frameTick );
 	}
 
 	piEncoder->Commit ();

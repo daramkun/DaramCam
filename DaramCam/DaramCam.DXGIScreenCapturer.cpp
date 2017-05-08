@@ -4,13 +4,13 @@
 
 #include "External Libraries\DXGIManager\DXGIManager.h"
 
-DCDXGIScreenCapturer::DCDXGIScreenCapturer ()
+DCDXGIScreenCapturer::DCDXGIScreenCapturer ( DCDXGIScreenCapturerRange range )
 	: capturedBitmap ( 0, 0 ), captureRegion ( nullptr )
 {
 	DXGIManager * dxgiManager = new DXGIManager;
 	this->dxgiManager = dxgiManager;
 
-	dxgiManager->SetCaptureSource ( CSDesktop );
+	dxgiManager->SetCaptureSource ( range == DCDXGIScreenCapturerRange_Desktop ? CSDesktop : CSMonitor1 );
 	tempBits = nullptr;
 
 	RECT outputRect;
@@ -38,19 +38,13 @@ void DCDXGIScreenCapturer::Capture ()
 	UINT fullWidth = outputRect.right - outputRect.left;
 	dxgiManager->GetOutputBits ( tempBits, outputRect );
 
-	if ( captureRegion == nullptr )
-		dxgiManager->GetOutputRect ( outputRect );
-	else
+	if ( captureRegion != nullptr )
 		outputRect = *captureRegion;
 
-//#pragma omp parallel for
+	int width4times = capturedBitmap.GetWidth () * 4;
+	BYTE* ba = capturedBitmap.GetByteArray ();
 	for ( int y = outputRect.top; y < outputRect.bottom; ++y )
-	{
-		for ( unsigned x = outputRect.left; x < outputRect.right; ++x )
-		{
-			capturedBitmap.SetColorRef ( ( ( COLORREF* ) tempBits ) [ y * fullWidth + x ], x - outputRect.left, y - outputRect.top );
-		}
-	}
+		memcpy ( ba + ( ( y - outputRect.top ) * width4times ), tempBits + ( y * fullWidth + outputRect.left ) * 4, width4times );
 }
 
 DCBitmap * DCDXGIScreenCapturer::GetCapturedBitmap () { return &capturedBitmap; }
@@ -63,11 +57,11 @@ void DCDXGIScreenCapturer::SetRegion ( RECT * region )
 		DXGIManager * dxgiManager = static_cast< DXGIManager* > ( this->dxgiManager );
 		dxgiManager->GetOutputRect ( outputRect );
 		
-		capturedBitmap.Resize ( outputRect.right - outputRect.left, outputRect.bottom - outputRect.top );
+		capturedBitmap.Resize ( outputRect.right - outputRect.left, outputRect.bottom - outputRect.top, 4 );
 	}
 	else
 	{
-		capturedBitmap.Resize ( region->right - region->left, region->bottom - region->top );
+		capturedBitmap.Resize ( region->right - region->left, region->bottom - region->top, 4 );
 	}
 	captureRegion = region;
 }

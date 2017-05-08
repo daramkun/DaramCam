@@ -37,21 +37,22 @@ DARAMCAM_EXPORTS HWND DCGetActiveWindowFromProcess ( DWORD pId );
 class DARAMCAM_EXPORTS DCBitmap
 {
 public:
-	DCBitmap ( unsigned width, unsigned height );
+	DCBitmap ( unsigned width, unsigned height, unsigned colorDepth = 3 );
 	~DCBitmap ();
 
 public:
 	unsigned char * GetByteArray ();
 	unsigned GetWidth ();
 	unsigned GetHeight ();
+	unsigned GetColorDepth ();
 	unsigned GetStride ();
 
 	unsigned GetByteArraySize ();
 
-	IWICBitmap * ToWICBitmap ( IWICImagingFactory * factory );
+	IWICBitmap * ToWICBitmap ( IWICImagingFactory * factory, bool useCached = true );
 
 public:
-	void Resize ( unsigned width, unsigned height );
+	void Resize ( unsigned width, unsigned height, unsigned colorDepth = 3 );
 
 public:
 	COLORREF GetColorRef ( unsigned x, unsigned y );
@@ -59,12 +60,12 @@ public:
 
 public:
 	void CopyFrom ( HDC hDC, HBITMAP hBitmap );
-	void CopyFrom ( IDXGISurface * dxgiSurface );
-	void CopyFrom ( IDirect3DSurface9 * d3dSurface );
 
 private:
 	unsigned char * byteArray;
-	unsigned width, height, stride;
+	unsigned width, height, colorDepth, stride;
+
+	IWICBitmap * wicCached;
 };
 
 // Abstract Screen Capturer
@@ -103,11 +104,17 @@ private:
 	DCBitmap capturedBitmap;
 };
 
+enum DCDXGIScreenCapturerRange
+{
+	DCDXGIScreenCapturerRange_Desktop,
+	DCDXGIScreenCapturerRange_MainMonitor,
+};
+
 // DXGI Screen Capturer
 class DARAMCAM_EXPORTS DCDXGIScreenCapturer : public DCScreenCapturer
 {
 public:
-	DCDXGIScreenCapturer ();
+	DCDXGIScreenCapturer ( DCDXGIScreenCapturerRange range = DCDXGIScreenCapturerRange_Desktop );
 	virtual ~DCDXGIScreenCapturer ();
 
 public:
@@ -246,38 +253,6 @@ private:
 	unsigned frameTick;
 };
 
-enum DCMFContainerType
-{
-	DCMFContainerType_MP4,
-};
-
-struct DCMFVideoConfig
-{
-public:
-	unsigned bitrate;
-};
-
-// Video File Generator via Windows Media Foundation
-// Can generate MP4
-// Cannot use in Windows N/KN
-class DARAMCAM_EXPORTS DCMFVideoGenerator : public DCVideoGenerator
-{
-public:
-	DCMFVideoGenerator ( DCMFContainerType containerType = DCMFContainerType_MP4, unsigned fps = 30 );
-	virtual ~DCMFVideoGenerator ();
-
-public:
-	virtual void Begin ( IStream * stream, DCScreenCapturer * capturer );
-	virtual void End ();
-
-private:
-	IMFTranscodeProfile * pProfile;
-	IMFMediaSource * pSource;
-	IMFTopology * pTopology;
-
-	DCMFVideoConfig videoConfig;
-};
-
 // Abstract Audio File Generator
 class DARAMCAM_EXPORTS DCAudioGenerator
 {
@@ -287,38 +262,6 @@ public:
 public:
 	virtual void Begin ( IStream * stream, DCAudioCapturer * capturer ) = 0;
 	virtual void End () = 0;
-};
-
-enum DCMFAudioType
-{
-	DCMFAudioType_MP3,
-	DCMFAudioType_AAC,
-	DCMFAudioType_WMA,
-	DCMFAudioType_WAV,
-};
-
-// Audio File Generator via Windows Media Foundation
-// Can generate MP3, AAC, WAV
-// Cannot use in Windows N/KN
-class DARAMCAM_EXPORTS DCMFAudioGenerator : public DCAudioGenerator
-{
-	friend DWORD WINAPI MFAG_Progress ( LPVOID vg );
-public:
-	DCMFAudioGenerator ( DCMFAudioType audioType );
-	virtual ~DCMFAudioGenerator ();
-
-public:
-	virtual void Begin ( IStream * stream, DCAudioCapturer * capturer );
-	virtual void End ();
-
-private:
-	DCMFAudioType audioType;
-
-	IStream * stream;
-	DCAudioCapturer * capturer;
-
-	HANDLE threadHandle;
-	bool threadRunning;
 };
 
 #endif

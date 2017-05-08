@@ -37,7 +37,7 @@ void DCWICImageGenerator::Generate ( IStream * stream, DCBitmap * bitmap )
 
 	piBitmapFrame->SetSize ( bitmap->GetWidth (), bitmap->GetHeight () );
 
-	WICPixelFormatGUID formatGUID = GUID_WICPixelFormat24bppBGR;
+	WICPixelFormatGUID formatGUID = bitmap->GetColorDepth () == 3 ? GUID_WICPixelFormat24bppBGR : GUID_WICPixelFormat32bppBGRA;
 	piBitmapFrame->SetPixelFormat ( &formatGUID );
 
 	piBitmapFrame->WritePixels ( bitmap->GetHeight (), bitmap->GetStride (), bitmap->GetByteArraySize (), bitmap->GetByteArray () );

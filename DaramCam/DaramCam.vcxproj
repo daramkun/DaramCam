@@ -176,11 +176,9 @@
     <ClCompile Include="DaramCam.DXGIScreenCapturer.cpp" />
     <ClCompile Include="DaramCam.GDIScreenCapturer.cpp" />
     <ClCompile Include="DaramCam.Generator.cpp" />
-    <ClCompile Include="DaramCam.MFVideoGenerator.cpp" />
     <ClCompile Include="DaramCam.Capturer.cpp" />
     <ClCompile Include="DaramCam.WASAPIAudioCapturer.cpp" />
     <ClCompile Include="DaramCam.WICVideoGenerator.cpp" />
-    <ClCompile Include="DaramCam.MFAudioGenerator.cpp" />
     <ClCompile Include="External Libraries\DXGIManager\DXGIManager.cpp" />
   </ItemGroup>
   <ItemGroup>
