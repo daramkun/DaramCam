@@ -19,6 +19,27 @@
     <Filter Include="External Libraries\DXGIManager">
       <UniqueIdentifier>{f14567b7-65b5-4fc4-bd30-bf91b83dacdd}</UniqueIdentifier>
     </Filter>
+    <Filter Include="소스 파일\Capturers">
+      <UniqueIdentifier>{77fe2c1e-2e8c-4fe5-aa5f-0b56e9b49f8c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="소스 파일\Capturers\Screen Capturers">
+      <UniqueIdentifier>{c7584302-3af8-4c2c-aaaa-2448916a68d6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="소스 파일\Capturers\Audio Capturers">
+      <UniqueIdentifier>{4b813ac8-1181-4b71-aaf5-236d1a7534ff}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="소스 파일\Generators">
+      <UniqueIdentifier>{004fe8b5-a1bc-476c-b6c9-2169ef251452}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="소스 파일\Generators\Image Generators">
+      <UniqueIdentifier>{dee27cb9-ae18-483f-91bb-c19c9939fdb8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="소스 파일\Generators\Video Generators">
+      <UniqueIdentifier>{43130e34-1875-4607-ada1-747ace41f156}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="소스 파일\Generators\Audio Generators">
+      <UniqueIdentifier>{cffdecf2-798e-41a1-99a8-210fa89fb8c6}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="DaramCam.h">
@@ -35,19 +56,7 @@
     <ClCompile Include="DaramCam.Bitmap.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
-    <ClCompile Include="DaramCam.WICImageGenerator.cpp">
-      <Filter>소스 파일</Filter>
-    </ClCompile>
-    <ClCompile Include="DaramCam.WICVideoGenerator.cpp">
-      <Filter>소스 파일</Filter>
-    </ClCompile>
-    <ClCompile Include="DaramCam.GDIScreenCapturer.cpp">
-      <Filter>소스 파일</Filter>
-    </ClCompile>
     <ClCompile Include="DaramCam.Capturer.cpp">
-      <Filter>소스 파일</Filter>
-    </ClCompile>
-    <ClCompile Include="DaramCam.WASAPIAudioCapturer.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
     <ClCompile Include="DaramCam.Generator.cpp">
@@ -56,11 +65,26 @@
     <ClCompile Include="DaramCam.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
-    <ClCompile Include="DaramCam.DXGIScreenCapturer.cpp">
-      <Filter>소스 파일</Filter>
-    </ClCompile>
     <ClCompile Include="External Libraries\DXGIManager\DXGIManager.cpp">
       <Filter>External Libraries\DXGIManager</Filter>
+    </ClCompile>
+    <ClCompile Include="DaramCam.DXGIScreenCapturer.cpp">
+      <Filter>소스 파일\Capturers\Screen Capturers</Filter>
+    </ClCompile>
+    <ClCompile Include="DaramCam.GDIScreenCapturer.cpp">
+      <Filter>소스 파일\Capturers\Screen Capturers</Filter>
+    </ClCompile>
+    <ClCompile Include="DaramCam.WICImageGenerator.cpp">
+      <Filter>소스 파일\Generators\Image Generators</Filter>
+    </ClCompile>
+    <ClCompile Include="DaramCam.WICVideoGenerator.cpp">
+      <Filter>소스 파일\Generators\Video Generators</Filter>
+    </ClCompile>
+    <ClCompile Include="DaramCam.WASAPIAudioCapturer.cpp">
+      <Filter>소스 파일\Capturers\Audio Capturers</Filter>
+    </ClCompile>
+    <ClCompile Include="DaramCam.WaveAudioGenerator.cpp">
+      <Filter>소스 파일\Generators\Audio Generators</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

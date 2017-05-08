@@ -8,13 +8,9 @@ const IID IID_IMMDeviceEnumerator = __uuidof( IMMDeviceEnumerator );
 const IID IID_IAudioClient = __uuidof( IAudioClient );
 const IID IID_IAudioCaptureClient = __uuidof( IAudioCaptureClient );
 
-DCWASAPIAudioCapturer::DCWASAPIAudioCapturer ()
+DCWASAPIAudioCapturer::DCWASAPIAudioCapturer ( IMMDevice * pDevice )
 	: byteArray ( nullptr )
 {
-	HRESULT hr = CoCreateInstance ( CLSID_MMDeviceEnumerator, NULL, CLSCTX_ALL, IID_IMMDeviceEnumerator, ( void** ) &pEnumerator );
-
-	pEnumerator->GetDefaultAudioEndpoint ( eRender, eConsole, &pDevice );
-
 	pDevice->Activate ( IID_IAudioClient, CLSCTX_ALL, NULL, ( void** ) &pAudioClient );
 
 	pAudioClient->GetMixFormat ( &pwfx );
@@ -43,13 +39,13 @@ DCWASAPIAudioCapturer::DCWASAPIAudioCapturer ()
 	}
 
 	REFERENCE_TIME hnsRequestedDuration = REFTIMES_PER_SEC;
-	pAudioClient->Initialize ( AUDCLNT_SHAREMODE_SHARED, AUDCLNT_STREAMFLAGS_LOOPBACK, hnsRequestedDuration, 0, pwfx, NULL );
+	pAudioClient->Initialize ( AUDCLNT_SHAREMODE_SHARED, GetStreamFlags (), hnsRequestedDuration, 0, pwfx, NULL );
 
 	REFERENCE_TIME hnsDefaultDevicePeriod;
 	pAudioClient->GetDevicePeriod ( &hnsDefaultDevicePeriod, NULL );
 	pAudioClient->GetBufferSize ( &bufferFrameCount );
 
-	hr = pAudioClient->GetService ( IID_IAudioCaptureClient, ( void** ) &pCaptureClient );
+	pAudioClient->GetService ( IID_IAudioCaptureClient, ( void** ) &pCaptureClient );
 
 	byteArray = new char [ byteArrayLength = 46000 * 128 ];
 
@@ -77,8 +73,6 @@ DCWASAPIAudioCapturer::~DCWASAPIAudioCapturer ()
 
 	pCaptureClient->Release ();
 	pAudioClient->Release ();
-	pDevice->Release ();
-	pEnumerator->Release ();
 }
 
 void DCWASAPIAudioCapturer::Begin ()
@@ -100,11 +94,11 @@ void * DCWASAPIAudioCapturer::GetAudioData ( unsigned * bufferLength )
 	UINT32 packetLength = 0;
 	DWORD totalLength = 0;
 
-	pCaptureClient->GetNextPacketSize ( &packetLength );
+	HRESULT hr;
+	hr = pCaptureClient->GetNextPacketSize ( &packetLength );
 
 	bool bFirstPacket = true;
-	HRESULT hr;
-	for ( hr = pCaptureClient->GetNextPacketSize ( &packetLength ); SUCCEEDED ( hr ) && packetLength > 0; hr = pCaptureClient->GetNextPacketSize ( &packetLength ) )
+	while ( SUCCEEDED ( hr ) && packetLength > 0 )
 	{
 		BYTE *pData;
 		UINT32 nNumFramesToRead;
@@ -127,6 +121,8 @@ void * DCWASAPIAudioCapturer::GetAudioData ( unsigned * bufferLength )
 			return nullptr;
 
 		bFirstPacket = false;
+
+		hr = pCaptureClient->GetNextPacketSize ( &packetLength );
 	}
 
 	DWORD dwWaitResult = WaitForMultipleObjects ( 1, &hWakeUp, FALSE, INFINITE );
@@ -134,3 +130,53 @@ void * DCWASAPIAudioCapturer::GetAudioData ( unsigned * bufferLength )
 	*bufferLength = totalLength;
 	return byteArray;
 }
+
+DWORD DCWASAPIAudioCapturer::GetStreamFlags () { return 0; }
+
+void DCWASAPIAudioCapturer::GetMultimediaDevices ( std::vector<IMMDevice*> & devices )
+{
+	IMMDeviceEnumerator *pEnumerator;
+	IMMDeviceCollection * pCollection;
+
+	CoCreateInstance ( CLSID_MMDeviceEnumerator, NULL, CLSCTX_ALL, IID_IMMDeviceEnumerator, ( void** ) &pEnumerator );
+	pEnumerator->EnumAudioEndpoints ( eCapture, DEVICE_STATE_ACTIVE, &pCollection );
+
+	UINT collectionCount;
+	pCollection->GetCount ( &collectionCount );
+	for ( UINT i = 0; i < collectionCount; ++i )
+	{
+		IMMDevice * pDevice;
+		pCollection->Item ( i, &pDevice );
+		devices.push_back ( pDevice );
+	}
+
+	pCollection->Release ();
+	pEnumerator->Release ();
+}
+
+void DCWASAPIAudioCapturer::ReleaseMultimediaDevices ( std::vector<IMMDevice*> & devices )
+{
+	for ( auto i = devices.begin (); i != devices.end (); ++i )
+		( *i )->Release ();
+	devices.clear ();
+}
+
+IMMDevice * DCWASAPIAudioCapturer::GetDefaultMultimediaDevice ()
+{
+	IMMDeviceEnumerator *pEnumerator;
+	IMMDevice * pDevice;
+
+	CoCreateInstance ( CLSID_MMDeviceEnumerator, NULL, CLSCTX_ALL, IID_IMMDeviceEnumerator, ( void** ) &pEnumerator );
+	pEnumerator->GetDefaultAudioEndpoint ( eRender, eConsole, &pDevice );
+	pEnumerator->Release ();
+
+	return pDevice;
+}
+
+DCWASAPILoopbackAudioCapturer::DCWASAPILoopbackAudioCapturer ()
+	: DCWASAPIAudioCapturer ( DCWASAPIAudioCapturer::GetDefaultMultimediaDevice () )
+{
+
+}
+
+DWORD DCWASAPILoopbackAudioCapturer::GetStreamFlags () { return AUDCLNT_STREAMFLAGS_LOOPBACK; }

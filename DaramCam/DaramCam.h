@@ -16,6 +16,8 @@
 #include <d3d9.h>
 #include <gl/GL.h>
 
+#include <vector>
+
 #if ! ( defined ( _WIN32 ) || defined ( _WIN64 ) || defined ( WINDOWS ) || defined ( _WINDOWS ) )
 #error "This library is for Windows only."
 #endif
@@ -27,11 +29,19 @@
 #define	DARAMCAM_EXPORTS					__declspec(dllexport)
 #endif
 
+////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
 DARAMCAM_EXPORTS void DCStartup ();
 DARAMCAM_EXPORTS void DCShutdown ();
 DARAMCAM_EXPORTS void DCGetProcesses ( DWORD * buffer, unsigned * bufferSize );
 DARAMCAM_EXPORTS void DCGetProcessName ( DWORD pId, char * nameBuffer, unsigned nameBufferSize );
 DARAMCAM_EXPORTS HWND DCGetActiveWindowFromProcess ( DWORD pId );
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // 24-bit Fixed RGB Color Bitmap Data Structure
 class DARAMCAM_EXPORTS DCBitmap
@@ -78,6 +88,59 @@ public:
 	virtual void Capture () = 0;
 	virtual DCBitmap * GetCapturedBitmap () = 0;
 };
+
+// Abstract Audio Capturer
+class DARAMCAM_EXPORTS DCAudioCapturer
+{
+public:
+	virtual ~DCAudioCapturer ();
+
+public:
+	virtual void Begin () = 0;
+	virtual void End () = 0;
+
+	virtual unsigned GetChannels () = 0;
+	virtual unsigned GetBitsPerSample () = 0;
+	virtual unsigned GetSamplerate () = 0;
+
+	virtual void* GetAudioData ( unsigned * bufferLength ) = 0;
+};
+
+// Abstract Image File Generator
+class DARAMCAM_EXPORTS DCImageGenerator
+{
+public:
+	virtual ~DCImageGenerator ();
+
+public:
+	virtual void Generate ( IStream * stream, DCBitmap * bitmap ) = 0;
+};
+
+// Abstract Video File Generator
+class DARAMCAM_EXPORTS DCVideoGenerator
+{
+public:
+	virtual ~DCVideoGenerator ();
+
+public:
+	virtual void Begin ( IStream * stream, DCScreenCapturer * capturer ) = 0;
+	virtual void End () = 0;
+};
+
+// Abstract Audio File Generator
+class DARAMCAM_EXPORTS DCAudioGenerator
+{
+public:
+	virtual ~DCAudioGenerator ();
+
+public:
+	virtual void Begin ( IStream * stream, DCAudioCapturer * capturer ) = 0;
+	virtual void End () = 0;
+};
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // GDI Screen Capturer
 class DARAMCAM_EXPORTS DCGDIScreenCapturer : public DCScreenCapturer
@@ -132,28 +195,15 @@ private:
 	DCBitmap capturedBitmap;
 };
 
-// Abstract Audio Capturer
-class DARAMCAM_EXPORTS DCAudioCapturer
-{
-public:
-	virtual ~DCAudioCapturer ();
-
-public:
-	virtual void Begin () = 0;
-	virtual void End () = 0;
-
-	virtual unsigned GetChannels () = 0;
-	virtual unsigned GetBitsPerSample () = 0;
-	virtual unsigned GetSamplerate () = 0;
-
-	virtual void* GetAudioData ( unsigned * bufferLength ) = 0;
-};
+////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // WASAPI Audio Capturer
 class DARAMCAM_EXPORTS DCWASAPIAudioCapturer : public DCAudioCapturer
 {
 public:
-	DCWASAPIAudioCapturer ();
+	DCWASAPIAudioCapturer ( IMMDevice * pDevice );
 	virtual ~DCWASAPIAudioCapturer ();
 
 public:
@@ -166,9 +216,15 @@ public:
 
 	virtual void* GetAudioData ( unsigned * bufferLength );
 
+protected:
+	virtual DWORD GetStreamFlags ();
+
+public:
+	static void GetMultimediaDevices ( std::vector<IMMDevice*> & devices );
+	static void ReleaseMultimediaDevices ( std::vector<IMMDevice*> & devices );
+	static IMMDevice* GetDefaultMultimediaDevice ();
+
 private:
-	IMMDeviceEnumerator *pEnumerator;
-	IMMDevice *pDevice;
 	IAudioClient *pAudioClient;
 	IAudioCaptureClient * pCaptureClient;
 
@@ -182,15 +238,18 @@ private:
 	HANDLE hWakeUp;
 };
 
-// Abstract Image File Generator
-class DARAMCAM_EXPORTS DCImageGenerator
+class DARAMCAM_EXPORTS DCWASAPILoopbackAudioCapturer : public DCWASAPIAudioCapturer
 {
 public:
-	virtual ~DCImageGenerator ();
+	DCWASAPILoopbackAudioCapturer ();
 
-public:
-	virtual void Generate ( IStream * stream, DCBitmap * bitmap ) = 0;
+protected:
+	virtual DWORD GetStreamFlags ();
 };
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // Image Types for WIC Image Generator
 enum DCWICImageType
@@ -217,16 +276,9 @@ private:
 	GUID containerGUID;
 };
 
-// Abstract Video File Generator
-class DARAMCAM_EXPORTS DCVideoGenerator
-{
-public:
-	virtual ~DCVideoGenerator ();
-
-public:
-	virtual void Begin ( IStream * stream, DCScreenCapturer * capturer ) = 0;
-	virtual void End () = 0;
-};
+////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // Video File Generator via Windows Imaging Component
 // Can generate GIF
@@ -253,15 +305,26 @@ private:
 	unsigned frameTick;
 };
 
-// Abstract Audio File Generator
-class DARAMCAM_EXPORTS DCAudioGenerator
+////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+class DARAMCAM_EXPORTS DCWaveAudioGenerator : public DCAudioGenerator
 {
+	friend DWORD WINAPI WAVAG_Progress ( LPVOID vg );
 public:
-	virtual ~DCAudioGenerator ();
+	DCWaveAudioGenerator ();
 
 public:
-	virtual void Begin ( IStream * stream, DCAudioCapturer * capturer ) = 0;
-	virtual void End () = 0;
+	virtual void Begin ( IStream * stream, DCAudioCapturer * capturer );
+	virtual void End ();
+
+private:
+	IStream * stream;
+	DCAudioCapturer * capturer;
+
+	bool threadRunning;
+	HANDLE threadHandle;
 };
 
 #endif

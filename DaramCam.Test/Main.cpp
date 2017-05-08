@@ -39,7 +39,7 @@ int main ( void )
 		hWnd = DCGetActiveWindowFromProcess ( process );*/
 
 	IStream * stream;
-	SHCreateStreamOnFileEx ( TEXT ( "Z:\\Test.png" ), STGM_READWRITE | STGM_CREATE, 0, false, 0, &stream );
+	/*SHCreateStreamOnFileEx ( TEXT ( "Z:\\Test.png" ), STGM_READWRITE | STGM_CREATE, 0, false, 0, &stream );
 
 	//DCGDIScreenCapturer * screenCapturer = new DCGDIScreenCapturer ( hWnd );
 	DCDXGIScreenCapturer * screenCapturer = new DCDXGIScreenCapturer ();
@@ -59,7 +59,7 @@ int main ( void )
 
 	SHCreateStreamOnFileEx ( TEXT ( "Z:\\Test.gif" ), STGM_READWRITE | STGM_CREATE, 0, false, 0, &stream );
 
-	DCVideoGenerator * vidGen = new DCWICVideoGenerator ( /*16*/33 );
+	DCVideoGenerator * vidGen = new DCWICVideoGenerator ( 16 );
 	vidGen->Begin ( stream, screenCapturer );
 	Sleep ( 10000 );
 	vidGen->End ();
@@ -67,19 +67,39 @@ int main ( void )
 
 	delete vidGen;
 
-	delete screenCapturer;
+	delete screenCapturer;/**/
 
-	/*DCWASAPIAudioCapturer * audioCapturer = new DCWASAPIAudioCapturer ();
+	/**/
+	///// Audio Capture
+	std::vector<IMMDevice*> devices;
+	DCWASAPIAudioCapturer::GetMultimediaDevices ( devices );
 
-	SHCreateStreamOnFileEx ( TEXT ( "Z:\\Test.m4a" ), STGM_READWRITE | STGM_CREATE, 0, false, 0, &stream );
+	for ( int i = 0; i < devices.size (); ++i )
+	{
+		IPropertyStore * propStore;
+		devices [ i ]->OpenPropertyStore ( STGM_READ, &propStore );
+		PROPVARIANT pv;
+		propStore->GetValue ( { { 0xa45c254e, 0xdf1c, 0x4efd, 0x80, 0x20, 0x67, 0xd1, 0x46, 0xa8, 0x50, 0xe0 }, 14 }, &pv );
 
-	DCAudioGenerator * audGen = new DCMFAudioGenerator ( DCMFAudioType_AAC );
+		printf ( "Device %d: %S\n", i, pv.bstrVal );
+	}
+	printf ( "> " );
+
+	int selected;
+	scanf ( "%d", &selected );
+
+	DCWASAPIAudioCapturer * audioCapturer = new DCWASAPIAudioCapturer ( devices [ selected ] );
+	DCWASAPIAudioCapturer::ReleaseMultimediaDevices ( devices );
+
+	SHCreateStreamOnFileEx ( TEXT ( "Z:\\Test.wav" ), STGM_READWRITE | STGM_CREATE, 0, false, 0, &stream );
+
+	DCAudioGenerator * audGen = new DCWaveAudioGenerator ();
 
 	audGen->Begin ( stream, audioCapturer );
 	Sleep ( 10000 );
 	audGen->End ();
 
-	delete audioCapturer;*/
+	delete audioCapturer;/**/
 
 	DCShutdown ();
 
