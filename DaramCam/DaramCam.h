@@ -216,6 +216,10 @@ public:
 
 	virtual void* GetAudioData ( unsigned * bufferLength );
 
+public:
+	float GetVolume ();
+	void SetVolume ( float volume );
+
 protected:
 	virtual DWORD GetStreamFlags ();
 
@@ -227,6 +231,9 @@ public:
 private:
 	IAudioClient *pAudioClient;
 	IAudioCaptureClient * pCaptureClient;
+
+	ISimpleAudioVolume * pAudioVolume;
+	float originalVolume;
 
 	WAVEFORMATEX *pwfx;
 

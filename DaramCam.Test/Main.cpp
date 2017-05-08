@@ -95,6 +95,8 @@ int main ( void )
 
 	DCAudioGenerator * audGen = new DCWaveAudioGenerator ();
 
+	printf ( "Master Volume: %f\n", audioCapturer->GetVolume () );
+
 	audGen->Begin ( stream, audioCapturer );
 	Sleep ( 10000 );
 	audGen->End ();

@@ -7,6 +7,7 @@ const CLSID CLSID_MMDeviceEnumerator = __uuidof( MMDeviceEnumerator );
 const IID IID_IMMDeviceEnumerator = __uuidof( IMMDeviceEnumerator );
 const IID IID_IAudioClient = __uuidof( IAudioClient );
 const IID IID_IAudioCaptureClient = __uuidof( IAudioCaptureClient );
+const IID IID_ISimpleAudioVolume = __uuidof( ISimpleAudioVolume );
 
 DCWASAPIAudioCapturer::DCWASAPIAudioCapturer ( IMMDevice * pDevice )
 	: byteArray ( nullptr )
@@ -46,6 +47,8 @@ DCWASAPIAudioCapturer::DCWASAPIAudioCapturer ( IMMDevice * pDevice )
 	pAudioClient->GetBufferSize ( &bufferFrameCount );
 
 	pAudioClient->GetService ( IID_IAudioCaptureClient, ( void** ) &pCaptureClient );
+	pAudioClient->GetService ( IID_ISimpleAudioVolume, ( void** ) &pAudioVolume );
+	originalVolume = GetVolume ();
 
 	byteArray = new char [ byteArrayLength = 46000 * 128 ];
 
@@ -70,6 +73,9 @@ DCWASAPIAudioCapturer::~DCWASAPIAudioCapturer ()
 		delete [] byteArray;
 
 	CoTaskMemFree ( pwfx );
+
+	SetVolume ( originalVolume );
+	pAudioVolume->Release ();
 
 	pCaptureClient->Release ();
 	pAudioClient->Release ();
@@ -129,6 +135,18 @@ void * DCWASAPIAudioCapturer::GetAudioData ( unsigned * bufferLength )
 
 	*bufferLength = totalLength;
 	return byteArray;
+}
+
+float DCWASAPIAudioCapturer::GetVolume ()
+{
+	float temp;
+	pAudioVolume->GetMasterVolume ( &temp );
+	return temp;
+}
+
+void DCWASAPIAudioCapturer::SetVolume ( float volume )
+{
+	pAudioVolume->SetMasterVolume ( volume, NULL );
 }
 
 DWORD DCWASAPIAudioCapturer::GetStreamFlags () { return 0; }
