@@ -4,6 +4,8 @@
 
 #include "External Libraries\DXGIManager\DXGIManager.h"
 
+#pragma intrinsic(memcpy) 
+
 DCDXGIScreenCapturer::DCDXGIScreenCapturer ( DCDXGIScreenCapturerRange range )
 	: capturedBitmap ( 0, 0 ), captureRegion ( nullptr )
 {
@@ -35,16 +37,16 @@ void DCDXGIScreenCapturer::Capture ()
 	DXGIManager * dxgiManager = static_cast< DXGIManager* > ( this->dxgiManager );
 	RECT outputRect;
 	dxgiManager->GetOutputRect ( outputRect );
-	UINT fullWidth = outputRect.right - outputRect.left;
-	dxgiManager->GetOutputBits ( tempBits, outputRect );
-
+	UINT fullWidth = ( outputRect.right - outputRect.left ) * 4;
 	if ( captureRegion != nullptr )
 		outputRect = *captureRegion;
+	dxgiManager->GetOutputBits ( tempBits, outputRect );
 
 	int width4times = capturedBitmap.GetWidth () * 4;
-	BYTE* ba = capturedBitmap.GetByteArray ();
-	for ( int y = outputRect.top; y < outputRect.bottom; ++y )
-		memcpy ( ba + ( ( y - outputRect.top ) * width4times ), tempBits + ( y * fullWidth + outputRect.left ) * 4, width4times );
+	outputRect.left *= 4;
+	BYTE* byteArray = capturedBitmap.GetByteArray ();
+	for ( int y = outputRect.top, y2 = 0; y < outputRect.bottom; ++y, ++y2 )
+		memcpy ( byteArray + ( y2 * width4times ), tempBits + ( y * fullWidth + outputRect.left ), width4times );
 }
 
 DCBitmap * DCDXGIScreenCapturer::GetCapturedBitmap () { return &capturedBitmap; }

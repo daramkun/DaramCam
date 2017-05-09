@@ -11,6 +11,8 @@ int main ( void )
 {
 	DCStartup ();
 
+	IStream * stream;
+
 	/*DWORD processes [ 4096 ] = { 0, };
 	unsigned processCount;
 	DCGetProcesses ( processes, &processCount );
@@ -38,12 +40,13 @@ int main ( void )
 	else
 		hWnd = DCGetActiveWindowFromProcess ( process );*/
 
-	IStream * stream;
-	/*SHCreateStreamOnFileEx ( TEXT ( "Z:\\Test.png" ), STGM_READWRITE | STGM_CREATE, 0, false, 0, &stream );
+	/**/SHCreateStreamOnFileEx ( TEXT ( "Z:\\Test.png" ), STGM_READWRITE | STGM_CREATE, 0, false, 0, &stream );
 
 	//DCGDIScreenCapturer * screenCapturer = new DCGDIScreenCapturer ( hWnd );
+	//DCGDIScreenCapturer * screenCapturer = new DCGDIScreenCapturer ( 0 );
 	DCDXGIScreenCapturer * screenCapturer = new DCDXGIScreenCapturer ();
 	RECT region = { 1920, 0, 1920 * 2, 1080 };
+	//RECT region = { 0, 0, 1920, 1080 };
 	//RECT region = { 1920, 0, 1920 + 960, 540 };
 	//RECT region = { 0, 0, 1920, 1080 };
 	//RECT region = { 0, 0, 960, 540 };
@@ -59,7 +62,7 @@ int main ( void )
 
 	SHCreateStreamOnFileEx ( TEXT ( "Z:\\Test.gif" ), STGM_READWRITE | STGM_CREATE, 0, false, 0, &stream );
 
-	DCVideoGenerator * vidGen = new DCWICVideoGenerator ( 16 );
+	DCVideoGenerator * vidGen = new DCWICVideoGenerator ( 33 );
 	vidGen->Begin ( stream, screenCapturer );
 	Sleep ( 10000 );
 	vidGen->End ();
@@ -69,19 +72,14 @@ int main ( void )
 
 	delete screenCapturer;/**/
 
-	/**/
+	/*
 	///// Audio Capture
 	std::vector<IMMDevice*> devices;
 	DCWASAPIAudioCapturer::GetMultimediaDevices ( devices );
 
 	for ( int i = 0; i < devices.size (); ++i )
 	{
-		IPropertyStore * propStore;
-		devices [ i ]->OpenPropertyStore ( STGM_READ, &propStore );
-		PROPVARIANT pv;
-		propStore->GetValue ( { { 0xa45c254e, 0xdf1c, 0x4efd, 0x80, 0x20, 0x67, 0xd1, 0x46, 0xa8, 0x50, 0xe0 }, 14 }, &pv );
-
-		printf ( "Device %d: %S\n", i, pv.bstrVal );
+		printf ( "Device %d: %S\n", i, DCGetDeviceName ( devices [ i ] ) );
 	}
 	printf ( "> " );
 

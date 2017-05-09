@@ -1,5 +1,7 @@
 #include "DaramCam.h"
 
+#pragma intrinsic(memcpy) 
+
 DCBitmap::DCBitmap ( unsigned _width, unsigned _height, unsigned _colorDepth )
 	: byteArray ( nullptr ), wicCached ( nullptr )
 {
@@ -51,6 +53,9 @@ IWICBitmap * DCBitmap::ToWICBitmap ( IWICImagingFactory * factory, bool useCache
 	bitmapLock->GetStride ( &wicStride );
 	memcpy ( ptr, byteArray, stride * height );
 	bitmapLock->Release ();
+
+	if ( useCached )
+		bitmap->AddRef ();
 
 	return bitmap;
 }

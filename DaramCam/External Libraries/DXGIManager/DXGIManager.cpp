@@ -1,9 +1,10 @@
-#include "DXGIManager.h"
+﻿#include "DXGIManager.h"
 #include <gdiplus.h>
 
 #pragma comment ( lib, "GdiPlus.lib" )
-
 using namespace Gdiplus;
+
+#pragma intrinsic(memcpy) 
 
 DXGIPointerInfo::DXGIPointerInfo(BYTE* pPointerShape, UINT uiPointerShapeBufSize, DXGI_OUTDUPL_FRAME_INFO fi, DXGI_OUTDUPL_POINTER_SHAPE_INFO psi)
 	:	m_pPointerShape(pPointerShape),
@@ -73,10 +74,10 @@ HRESULT DXGIOutputDuplication::AcquireNextFrame(IDXGISurface1** pDXGISurface, DX
 	CComQIPtr<ID3D11Texture2D> spTextureResource = spDXGIResource;
 
 	D3D11_TEXTURE2D_DESC desc;
-	spTextureResource->GetDesc(&desc);
+	spTextureResource->GetDesc ( &desc );
 
 	D3D11_TEXTURE2D_DESC texDesc;
-	ZeroMemory( &texDesc, sizeof(texDesc) );
+	ZeroMemory ( &texDesc, sizeof ( texDesc ) );
 	texDesc.Width = desc.Width;
 	texDesc.Height = desc.Height;
 	texDesc.MipLevels = 1;
@@ -89,14 +90,14 @@ HRESULT DXGIOutputDuplication::AcquireNextFrame(IDXGISurface1** pDXGISurface, DX
 	texDesc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
 	texDesc.MiscFlags = 0;
 
-	CComPtr<ID3D11Texture2D> spD3D11Texture2D = NULL;
-	hr = m_D3DDevice->CreateTexture2D(&texDesc, NULL, &spD3D11Texture2D);
-	if(FAILED(hr))
+	CComPtr<ID3D11Texture2D> m_spD3D11Texture2D;
+	hr = m_D3DDevice->CreateTexture2D ( &texDesc, NULL, &m_spD3D11Texture2D );
+	if ( FAILED ( hr ) )
 		return hr;
 
-	m_D3DDeviceContext->CopyResource(spD3D11Texture2D, spTextureResource);
+	m_D3DDeviceContext->CopyResource(m_spD3D11Texture2D, spTextureResource);
 
-	CComQIPtr<IDXGISurface1> spDXGISurface = spD3D11Texture2D;
+	CComQIPtr<IDXGISurface1> spDXGISurface = m_spD3D11Texture2D;
 
 	*pDXGISurface = spDXGISurface.Detach();
 	
@@ -202,6 +203,77 @@ DXGIManager::~DXGIManager()
 HRESULT DXGIManager::SetCaptureSource(CaptureSource cs)
 {
 	m_CaptureSource = cs;
+
+	Init ();
+
+	RECT rcShare = { 0, 0, 0, 0 };
+
+	m_outputDupls.clear ();
+	switch ( m_CaptureSource )
+	{
+	case CSMonitor1:
+		{
+			// Return the one with IsPrimary
+			for ( auto iter = m_vOutputs.begin (); iter != m_vOutputs.end (); iter++ )
+			{
+				DXGIOutputDuplication& out = *iter;
+				if ( out.IsPrimary () )
+				{
+					DXGI_OUTPUT_DESC outDesc;
+					out.GetDesc ( outDesc );
+					RECT rcOutCoords = outDesc.DesktopCoordinates;
+
+					UnionRect ( &rcShare, &rcShare, &rcOutCoords );
+
+					m_outputDupls.push_back ( &out );
+					break;
+				}
+			}
+		}
+		break;
+
+	case CSMonitor2:
+		{
+			// Return the first with !IsPrimary
+			for ( auto iter = m_vOutputs.begin (); iter != m_vOutputs.end (); iter++ )
+			{
+				DXGIOutputDuplication& out = *iter;
+				if ( !out.IsPrimary () )
+				{
+					DXGI_OUTPUT_DESC outDesc;
+					out.GetDesc ( outDesc );
+					RECT rcOutCoords = outDesc.DesktopCoordinates;
+
+					UnionRect ( &rcShare, &rcShare, &rcOutCoords );
+
+					m_outputDupls.push_back ( &out );
+					break;
+				}
+			}
+		}
+		break;
+
+	case CSDesktop:
+		{
+			// Return all m_outputDupls
+			for ( auto iter = m_vOutputs.begin (); iter != m_vOutputs.end (); iter++ )
+			{
+				DXGIOutputDuplication& out = *iter;
+
+				DXGI_OUTPUT_DESC outDesc;
+				out.GetDesc ( outDesc );
+				RECT rcOutCoords = outDesc.DesktopCoordinates;
+
+				UnionRect ( &rcShare, &rcShare, &rcOutCoords );
+
+				m_outputDupls.push_back ( &out );
+			}
+		}
+		break;
+	}
+
+	CopyRect ( &m_rcCalcedRect, &rcShare );
+
 	return S_OK;
 }
 
@@ -234,7 +306,7 @@ HRESULT DXGIManager::Init()
 		spAdapter.Release();
 	}
 
-	// Iterating over all adapters to get all outputs
+	// Iterating over all adapters to get all m_outputDupls
 	for(vector<CComPtr<IDXGIAdapter1>>::iterator AdapterIter = vAdapters.begin();
 		AdapterIter != vAdapters.end();
 		AdapterIter++)
@@ -304,42 +376,15 @@ HRESULT DXGIManager::Init()
 
 HRESULT DXGIManager::GetOutputRect(RECT& rc)
 {
-	// Nulling rc just in case...
-	SetRect(&rc, 0, 0, 0, 0);
-
-	HRESULT hr = Init();
-	if(hr != S_OK)
-		return hr;
-
-	vector<DXGIOutputDuplication> vOutputs = GetOutputDuplication();
-
-	RECT rcShare;
-	SetRect(&rcShare, 0, 0, 0, 0);
-
-	for(vector<DXGIOutputDuplication>::iterator iter = vOutputs.begin();
-		iter != vOutputs.end();
-		iter++)
-	{
-		DXGIOutputDuplication& out = *iter;
-	
-		DXGI_OUTPUT_DESC outDesc;
-		out.GetDesc(outDesc);
-		RECT rcOutCoords = outDesc.DesktopCoordinates;
-
-		UnionRect(&rcShare, &rcShare, &rcOutCoords);
-	}
-
-	CopyRect(&rc, &rcShare);
-
+	CopyRect(&rc, &m_rcCalcedRect);
 	return S_OK;
 }
 
-HRESULT DXGIManager::GetOutputBits(BYTE* pBits, RECT& rcDest)
+bool IsCollision ( RECT & rc1, RECT & rc2 ) { return ( rc1.left <= rc2.right && rc1.top <= rc2.bottom && rc2.left <= rc1.right && rc2.top <= rc1.bottom ); }
+
+HRESULT DXGIManager::GetOutputBits(BYTE* pBits, RECT & dest )
 {
 	HRESULT hr = S_OK;
-
-	DWORD dwDestWidth = rcDest.right - rcDest.left;
-	DWORD dwDestHeight = rcDest.bottom - rcDest.top;
 
 	RECT rcOutput;
 	hr = GetOutputRect(rcOutput);
@@ -349,49 +394,22 @@ HRESULT DXGIManager::GetOutputBits(BYTE* pBits, RECT& rcDest)
 	DWORD dwOutputWidth = rcOutput.right - rcOutput.left;
 	DWORD dwOutputHeight = rcOutput.bottom - rcOutput.top;
 
-	BYTE* pBuf = NULL;
-	if(rcOutput.right > (LONG)dwDestWidth || rcOutput.bottom > (LONG)dwDestHeight)
+	BYTE* pBuf = pBits;
+
+	vector<DXGIOutputDuplication*> & vOutputs = GetOutputDuplication();
+	for(auto iter = vOutputs.begin(); iter != vOutputs.end(); iter++)
 	{
-		// Output is larger than pBits dimensions
-		if(!m_pBuf || !EqualRect(&m_rcCurrentOutput, &rcOutput))
-		{
-			DWORD dwBufSize = dwOutputWidth*dwOutputHeight*4;
-
-			if(m_pBuf)
-			{
-				delete [] m_pBuf;
-				m_pBuf = NULL;
-			}
-
-			m_pBuf = new BYTE[dwBufSize];
-
-			CopyRect(&m_rcCurrentOutput, &rcOutput);
-		}
-
-		pBuf = m_pBuf;
-	}
-	else
-	{
-		// Output is smaller than pBits dimensions
-		pBuf = pBits;
-		dwOutputWidth = dwDestWidth;
-		dwOutputHeight = dwDestHeight;
-	}
-
-	vector<DXGIOutputDuplication> vOutputs = GetOutputDuplication();
-
-	for(vector<DXGIOutputDuplication>::iterator iter = vOutputs.begin();
-		iter != vOutputs.end();
-		iter++)
-	{
-		DXGIOutputDuplication& out = *iter;
+		DXGIOutputDuplication* out = *iter;
 	
 		DXGI_OUTPUT_DESC outDesc;
-		out.GetDesc(outDesc);
+		out->GetDesc(outDesc);
 		RECT rcOutCoords = outDesc.DesktopCoordinates;
 
+		if ( !IsCollision ( rcOutCoords, dest ) )
+			continue;
+
 		CComPtr<IDXGISurface1> spDXGISurface1;
-		hr = out.AcquireNextFrame(&spDXGISurface1, m_pDXGIPointer);
+		hr = out->AcquireNextFrame(&spDXGISurface1, m_pDXGIPointer);
 		if( FAILED(hr) )
 			break;
 
@@ -412,9 +430,10 @@ HRESULT DXGIManager::GetOutputBits(BYTE* pBits, RECT& rcDest)
 				{
 					// Just copying
 					DWORD dwStripe = dwWidth*4;
-					for(int i=0; i<dwHeight; i++)
+					for(DWORD i=0; i<dwHeight; ++i)
 					{
-						memcpy_s(pBuf + (rcDesktop.left + (i + rcDesktop.top)*dwOutputWidth)*4, dwStripe, map.pBits + i*map.Pitch, dwStripe);
+						//memcpy_s(pBuf + (rcDesktop.left + (i + rcDesktop.top)*dwOutputWidth)*4, dwStripe, map.pBits + i*map.Pitch, dwStripe);
+						memcpy ( pBuf + ( rcDesktop.left + ( i + rcDesktop.top )*dwOutputWidth ) * 4, map.pBits + i*map.Pitch, dwStripe );
 					}
 				}
 				break;
@@ -423,9 +442,9 @@ HRESULT DXGIManager::GetOutputBits(BYTE* pBits, RECT& rcDest)
 					// Rotating at 90 degrees
 					DWORD* pSrc = (DWORD*)map.pBits;
 					DWORD* pDst = (DWORD*)pBuf;
-					for(int j=0; j<dwHeight; j++)
+					for( DWORD j=0; j<dwHeight; ++j)
 					{
-						for(unsigned int i=0; i<dwWidth; i++)
+						for( DWORD i=0; i<dwWidth; ++i)
 						{
 							*(pDst + (rcDesktop.left + (j + rcDesktop.top)*dwOutputWidth) + i) = *(pSrc + j + dwMapPitchPixels*(dwWidth - i - 1));
 						}
@@ -437,9 +456,9 @@ HRESULT DXGIManager::GetOutputBits(BYTE* pBits, RECT& rcDest)
 					// Rotating at 180 degrees
 					DWORD* pSrc = (DWORD*)map.pBits;
 					DWORD* pDst = (DWORD*)pBuf;
-					for(int j=0; j<dwHeight; j++)
+					for( DWORD j=0; j<dwHeight; ++j)
 					{
-						for(unsigned int i=0; i<dwWidth; i++)
+						for( DWORD i=0; i<dwWidth; ++i)
 						{
 							*(pDst + (rcDesktop.left + (j + rcDesktop.top)*dwOutputWidth) + i) = *(pSrc + (dwWidth - i - 1) + dwMapPitchPixels*(dwHeight - j - 1));
 						}
@@ -451,9 +470,9 @@ HRESULT DXGIManager::GetOutputBits(BYTE* pBits, RECT& rcDest)
 					// Rotating at 270 degrees
 					DWORD* pSrc = (DWORD*)map.pBits;
 					DWORD* pDst = (DWORD*)pBuf;
-					for(int j=0; j<dwHeight; j++)
+					for( DWORD j=0; j<dwHeight; ++j)
 					{
-						for(unsigned int i=0; i<dwWidth; i++)
+						for( DWORD i=0; i<dwWidth; ++i)
 						{
 							*(pDst + (rcDesktop.left + (j + rcDesktop.top)*dwOutputWidth) + i) = *(pSrc + (dwHeight - j - 1) + dwMapPitchPixels*i);
 						}
@@ -464,60 +483,14 @@ HRESULT DXGIManager::GetOutputBits(BYTE* pBits, RECT& rcDest)
 		
 		spDXGISurface1->Unmap();
 
-		out.ReleaseFrame();
+		out->ReleaseFrame();
 	}
 
 	if(FAILED(hr))
 		return hr;
 
-	// Now pBits have the desktop. Let's paint mouse pointer!
-	if(pBuf != pBits)
-	{
-		DrawMousePointer(pBuf, rcOutput, rcOutput);
-	}
-	else
-	{
-		DrawMousePointer(pBuf, rcOutput, rcDest);
-	}
-
-	// We have the pBuf filled with current desktop/monitor image.
-	if(pBuf != pBits)
-	{
-		// pBuf contains the image that should be resized
-		CComPtr<IWICBitmap> spBitmap = NULL;
-		hr = m_spWICFactory->CreateBitmapFromMemory(dwOutputWidth, dwOutputHeight, GUID_WICPixelFormat32bppBGRA, dwOutputWidth*4, dwOutputWidth*dwOutputHeight*4, (BYTE*)pBuf, &spBitmap);
-		if( FAILED(hr) )
-			return hr;
-
-		CComPtr<IWICBitmapScaler> spBitmapScaler = NULL;
-		hr = m_spWICFactory->CreateBitmapScaler(&spBitmapScaler);
-		if( FAILED(hr) )
-			return hr;
-		
-		dwOutputWidth = rcOutput.right - rcOutput.left;
-		dwOutputHeight = rcOutput.bottom - rcOutput.top;
-
-		double aspect = (double)dwOutputWidth/(double)dwOutputHeight;
-
-		DWORD scaledWidth = dwDestWidth;
-		DWORD scaledHeight = dwDestHeight;
-
-		if(aspect > 1)
-		{
-			scaledWidth = dwDestWidth;
-			scaledHeight = (DWORD)(dwDestWidth/aspect);
-		}
-		else
-		{
-			scaledWidth = (DWORD)(aspect*dwDestHeight);
-			scaledHeight = dwDestHeight;
-		}
-
-		spBitmapScaler->Initialize(
-			spBitmap, scaledWidth, scaledHeight, WICBitmapInterpolationModeNearestNeighbor);
-
-		spBitmapScaler->CopyPixels(NULL, scaledWidth*4, dwDestWidth*dwDestHeight*4, pBits);
-	}
+	DrawMousePointer(pBuf, rcOutput, rcOutput);
+	
 	return hr;
 }
 
@@ -529,16 +502,13 @@ void DXGIManager::DrawMousePointer(BYTE* pDesktopBits, RECT rcDesktop, RECT rcDe
 	DWORD dwDesktopWidth = rcDesktop.right - rcDesktop.left;
 	DWORD dwDesktopHeight = rcDesktop.bottom - rcDesktop.top;
 
-	DWORD dwDestWidth = rcDest.right - rcDest.left;
-	DWORD dwDestHeight = rcDest.bottom - rcDest.top;
-
 	int PtrX = m_pDXGIPointer->GetFrameInfo().PointerPosition.Position.x - rcDesktop.left;
 	int PtrY = m_pDXGIPointer->GetFrameInfo().PointerPosition.Position.y - rcDesktop.top;
 	switch(m_pDXGIPointer->GetShapeInfo().Type)
 	{
 		case DXGI_OUTDUPL_POINTER_SHAPE_TYPE_COLOR:
 			{
-				unique_ptr<Bitmap> bmpBitmap(new Bitmap(dwDestWidth, dwDestHeight, dwDestWidth*4, PixelFormat32bppARGB, pDesktopBits));
+				unique_ptr<Bitmap> bmpBitmap(new Bitmap( dwDesktopWidth, dwDesktopHeight, dwDesktopWidth *4, PixelFormat32bppARGB, pDesktopBits));
 				unique_ptr<Graphics> graphics(Graphics::FromImage(bmpBitmap.get()));
 				unique_ptr<Bitmap> bmpPointer(new Bitmap(m_pDXGIPointer->GetShapeInfo().Width, m_pDXGIPointer->GetShapeInfo().Height, m_pDXGIPointer->GetShapeInfo().Width*4, PixelFormat32bppARGB, m_pDXGIPointer->GetBuffer()));
 				
@@ -585,7 +555,7 @@ void DXGIManager::DrawMousePointer(BYTE* pDesktopBits, RECT rcDesktop, RECT rcDe
 							UINT AndMask32 = (AndMask) ? 0xFFFFFFFF : 0xFF000000;
 							UINT XorMask32 = (XorMask) ? 0x00FFFFFF : 0x00000000;
 
-							pDesktopBits32[jDP*dwDestWidth + iDP] = (pDesktopBits32[jDP*dwDestWidth + iDP] & AndMask32) ^ XorMask32;
+							pDesktopBits32[jDP*dwDesktopWidth + iDP] = (pDesktopBits32[jDP*dwDesktopWidth + iDP] & AndMask32) ^ XorMask32;
 						}
 					}
 				}
@@ -605,12 +575,12 @@ void DXGIManager::DrawMousePointer(BYTE* pDesktopBits, RECT rcDesktop, RECT rcDe
 							if (MaskVal)
 							{
 								// Mask was 0xFF
-								pDesktopBits32[jDP*dwDestWidth + iDP] = (pDesktopBits32[jDP*dwDestWidth + iDP] ^ pShapeBuffer32[i + (m_pDXGIPointer->GetShapeInfo().Pitch/4)*j]) | 0xFF000000;
+								pDesktopBits32[jDP*dwDesktopWidth + iDP] = (pDesktopBits32[jDP*dwDesktopWidth + iDP] ^ pShapeBuffer32[i + (m_pDXGIPointer->GetShapeInfo().Pitch/4)*j]) | 0xFF000000;
 							}
 							else
 							{
 								// Mask was 0x00 - replacing pixel
-								pDesktopBits32[jDP*dwDestWidth + iDP] = pShapeBuffer32[i + (m_pDXGIPointer->GetShapeInfo().Pitch/4)*j];
+								pDesktopBits32[jDP*dwDesktopWidth + iDP] = pShapeBuffer32[i + (m_pDXGIPointer->GetShapeInfo().Pitch/4)*j];
 							}
 						}
 					}
@@ -620,59 +590,9 @@ void DXGIManager::DrawMousePointer(BYTE* pDesktopBits, RECT rcDesktop, RECT rcDe
 	}
 }
 
-vector<DXGIOutputDuplication> DXGIManager::GetOutputDuplication()
+vector<DXGIOutputDuplication*> & DXGIManager::GetOutputDuplication()
 {
-	vector<DXGIOutputDuplication> outputs;
-	switch(m_CaptureSource)
-	{
-		case CSMonitor1:
-		{
-			// Return the one with IsPrimary
-			for(vector<DXGIOutputDuplication>::iterator iter = m_vOutputs.begin();
-				iter != m_vOutputs.end();
-				iter++)
-			{
-				DXGIOutputDuplication& out = *iter;
-				if(out.IsPrimary())
-				{
-					outputs.push_back(out);
-					break;
-				}
-			}
-		}
-		break;
-
-		case CSMonitor2:
-		{
-			// Return the first with !IsPrimary
-			for(vector<DXGIOutputDuplication>::iterator iter = m_vOutputs.begin();
-				iter != m_vOutputs.end();
-				iter++)
-			{
-				DXGIOutputDuplication& out = *iter;
-				if(!out.IsPrimary())
-				{
-					outputs.push_back(out);
-					break;
-				}
-			}
-		}
-		break;
-
-		case CSDesktop:
-		{
-			// Return all outputs
-			for(vector<DXGIOutputDuplication>::iterator iter = m_vOutputs.begin();
-				iter != m_vOutputs.end();
-				iter++)
-			{
-				DXGIOutputDuplication& out = *iter;
-				outputs.push_back(out);
-			}
-		}
-		break;
-	}
-	return outputs;
+	return m_outputDupls;
 }
 
 BOOL CALLBACK MonitorEnumProc(HMONITOR hMonitor, HDC hdcMonitor, LPRECT lprcMonitor, LPARAM dwData)

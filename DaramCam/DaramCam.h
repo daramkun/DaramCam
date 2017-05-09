@@ -17,6 +17,7 @@
 #include <gl/GL.h>
 
 #include <vector>
+#include <concurrent_queue.h>
 
 #if ! ( defined ( _WIN32 ) || defined ( _WIN64 ) || defined ( WINDOWS ) || defined ( _WINDOWS ) )
 #error "This library is for Windows only."
@@ -38,6 +39,8 @@ DARAMCAM_EXPORTS void DCShutdown ();
 DARAMCAM_EXPORTS void DCGetProcesses ( DWORD * buffer, unsigned * bufferSize );
 DARAMCAM_EXPORTS void DCGetProcessName ( DWORD pId, char * nameBuffer, unsigned nameBufferSize );
 DARAMCAM_EXPORTS HWND DCGetActiveWindowFromProcess ( DWORD pId );
+DARAMCAM_EXPORTS BSTR DCGetDeviceName ( IMMDevice * pDevice );
+DARAMCAM_EXPORTS double DCGetCurrentTime ();
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -287,13 +290,21 @@ private:
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
+struct WICVG_CONTAINER { IWICBitmap * bitmapSource; UINT deltaTime; };
+
+enum {
+	WICVG_FRAMETICK_30FPS = 33,
+	WICVG_FRAMETICK_24FPS = 41
+};
+
 // Video File Generator via Windows Imaging Component
-// Can generate GIF
+// Can generate GIF only
 class DARAMCAM_EXPORTS DCWICVideoGenerator : public DCVideoGenerator
 {
 	friend DWORD WINAPI WICVG_Progress ( LPVOID vg );
+	friend DWORD WINAPI WICVG_Capturer ( LPVOID vg );
 public:
-	DCWICVideoGenerator ( unsigned frameTick = 42 );
+	DCWICVideoGenerator ( unsigned frameTick = WICVG_FRAMETICK_30FPS );
 	virtual ~DCWICVideoGenerator ();
 
 public:
@@ -306,16 +317,20 @@ private:
 	IStream * stream;
 	DCScreenCapturer * capturer;
 
-	HANDLE threadHandle;
+	HANDLE threadHandles [ 2 ];
 	bool threadRunning;
 
 	unsigned frameTick;
+
+	Concurrency::concurrent_queue<WICVG_CONTAINER> capturedQueue;
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
+// Audio File Generator via Original Code
+// Can generate WAV only
 class DARAMCAM_EXPORTS DCWaveAudioGenerator : public DCAudioGenerator
 {
 	friend DWORD WINAPI WAVAG_Progress ( LPVOID vg );

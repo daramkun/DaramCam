@@ -84,3 +84,21 @@ DARAMCAM_EXPORTS HWND DCGetActiveWindowFromProcess ( DWORD pId )
 	}, ( LPARAM ) &lParam );
 	return lParam.returnHWND;
 }
+
+DARAMCAM_EXPORTS BSTR DCGetDeviceName ( IMMDevice * pDevice )
+{
+	IPropertyStore * propStore;
+	pDevice->OpenPropertyStore ( STGM_READ, &propStore );
+	PROPVARIANT pv;
+	propStore->GetValue ( { { 0xa45c254e, 0xdf1c, 0x4efd, 0x80, 0x20, 0x67, 0xd1, 0x46, 0xa8, 0x50, 0xe0 }, 14 }, &pv );
+	propStore->Release ();
+	return pv.bstrVal;
+}
+
+DARAMCAM_EXPORTS double DCGetCurrentTime ()
+{
+	LARGE_INTEGER performanceFrequency, getTime;
+	QueryPerformanceFrequency ( &performanceFrequency );
+	QueryPerformanceCounter ( &getTime );
+	return ( getTime.QuadPart / ( double ) performanceFrequency.QuadPart );
+}

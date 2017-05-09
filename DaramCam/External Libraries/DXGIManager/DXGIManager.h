@@ -70,18 +70,20 @@ public:
 	CaptureSource GetCaptureSource();
 
 	HRESULT GetOutputRect(RECT& rc);
-	HRESULT GetOutputBits(BYTE* pBits, RECT& rcDest);
+	HRESULT GetOutputBits(BYTE* pBits, RECT & dest);
 private:
 	HRESULT Init();
 	int GetMonitorCount();
-	vector<DXGIOutputDuplication> GetOutputDuplication();
+	vector<DXGIOutputDuplication*> & GetOutputDuplication();
 	void DrawMousePointer(BYTE* pDesktopBits, RECT rcDesktop, RECT rcDest);
 private:
 	CComPtr<IDXGIFactory1> m_spDXGIFactory1;
 	vector<DXGIOutputDuplication> m_vOutputs;
+	vector<DXGIOutputDuplication*> m_outputDupls;
 	bool m_bInitialized;
 	CaptureSource m_CaptureSource;
 	RECT m_rcCurrentOutput;
+	RECT m_rcCalcedRect;
 	BYTE* m_pBuf;
 
 	CComPtr<IWICImagingFactory> m_spWICFactory;

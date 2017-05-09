@@ -2,6 +2,8 @@
 
 #pragma comment ( lib, "winmm.lib" )
 
+#include <ppltasks.h>
+
 DCWICVideoGenerator::DCWICVideoGenerator ( unsigned _frameTick )
 {
 	CoCreateInstance ( CLSID_WICImagingFactory, NULL, CLSCTX_INPROC_SERVER, IID_IWICImagingFactory, ( LPVOID* ) &piFactory );
@@ -70,41 +72,46 @@ DWORD WINAPI WICVG_Progress ( LPVOID vg )
 
 	memset ( &propValue, 0, sizeof ( propValue ) );
 	propValue.vt = VT_UI2;
-	//propValue.uiVal = videoGen->frameTick / 100;
 
-	DWORD lastTick, currentTick;
-	lastTick = currentTick = timeGetTime ();
-	while ( videoGen->threadRunning )
+	while ( videoGen->threadRunning || !videoGen->capturedQueue.empty () )
 	{
-		if ( ( currentTick = timeGetTime () ) - lastTick >= videoGen->frameTick )
+		if ( videoGen->capturedQueue.empty () )
 		{
-			piEncoder->CreateNewFrame ( &piBitmapFrame, &pPropertybag );
-			if ( hr != S_OK )
-			{
-				videoGen->threadRunning = false;
-				continue;
-			}
-			piBitmapFrame->Initialize ( pPropertybag );
-
-			videoGen->capturer->Capture ();
-			DCBitmap * bitmap = videoGen->capturer->GetCapturedBitmap ();
-			piBitmapFrame->SetSize ( bitmap->GetWidth (), bitmap->GetHeight () );
-			auto bitmapSource = bitmap->ToWICBitmap ( videoGen->piFactory );
-
-			piBitmapFrame->WriteSource ( bitmapSource, nullptr );
-
-			piBitmapFrame->GetMetadataQueryWriter ( &queryWriter );
-			piBitmapFrame->Commit ();
-
-			propValue.uiVal = ( WORD ) ( ( currentTick - lastTick ) / 10 );
-			queryWriter->SetMetadataByName ( TEXT ( "/grctlext/Delay" ), &propValue );
-			queryWriter->Release ();
-
-			piBitmapFrame->Release ();
-			//bitmapSource->Release ();
-
-			lastTick = currentTick;
+			Sleep ( 0 );
+			continue;
 		}
+
+		piEncoder->CreateNewFrame ( &piBitmapFrame, &pPropertybag );
+		if ( hr != S_OK )
+		{
+			videoGen->threadRunning = false;
+			return -1;
+		}
+		piBitmapFrame->Initialize ( pPropertybag );
+
+		WICVG_CONTAINER container;
+		if ( !videoGen->capturedQueue.try_pop ( container ) )
+		{
+			Sleep ( 1 );
+			continue;
+		}
+		UINT imgWidth, imgHeight;
+		container.bitmapSource->GetSize ( &imgWidth, &imgHeight );
+		piBitmapFrame->SetSize ( imgWidth, imgHeight );
+		piBitmapFrame->WriteSource ( container.bitmapSource, nullptr );
+
+		piBitmapFrame->GetMetadataQueryWriter ( &queryWriter );
+		piBitmapFrame->Commit ();
+
+		propValue.uiVal = ( WORD ) container.deltaTime;
+		queryWriter->SetMetadataByName ( TEXT ( "/grctlext/Delay" ), &propValue );
+		queryWriter->Release ();
+
+		container.bitmapSource->Release ();
+
+		piBitmapFrame->Release ();
+
+		Sleep ( 1 );
 	}
 
 	piEncoder->Commit ();
@@ -118,17 +125,47 @@ DWORD WINAPI WICVG_Progress ( LPVOID vg )
 	return 0;
 }
 
+DWORD WINAPI WICVG_Capturer ( LPVOID vg )
+{
+	DCWICVideoGenerator * videoGen = ( DCWICVideoGenerator* ) vg;
+
+	DWORD lastTick, currentTick;
+	lastTick = currentTick = timeGetTime ();
+	while ( videoGen->threadRunning )
+	{
+		if ( ( currentTick = timeGetTime () ) - lastTick >= videoGen->frameTick )
+		{
+			videoGen->capturer->Capture ();
+			DCBitmap * bitmap = videoGen->capturer->GetCapturedBitmap ();
+
+			WICVG_CONTAINER container;
+			container.deltaTime = ( currentTick - lastTick ) / 10;
+			container.bitmapSource = bitmap->ToWICBitmap ( videoGen->piFactory, false );
+
+			videoGen->capturedQueue.push ( container );
+
+			lastTick = currentTick;
+		}
+
+		Sleep ( 1 );
+	}
+
+	return 0;
+}
+
 void DCWICVideoGenerator::Begin ( IStream * _stream, DCScreenCapturer * _capturer )
 {
 	stream = _stream;
 	capturer = _capturer;
 
 	threadRunning = true;
-	threadHandle = CreateThread ( nullptr, 0, WICVG_Progress, this, 0, 0 );
+	threadHandles [ 0 ] = CreateThread ( nullptr, 0, WICVG_Progress, this, 0, nullptr );
+	threadHandles [ 1 ] = CreateThread ( nullptr, 0, WICVG_Capturer, this, 0, nullptr );
 }
 
 void DCWICVideoGenerator::End ()
 {
 	threadRunning = false;
-	WaitForSingleObject ( threadHandle, INFINITE );
+	//WaitForSingleObject ( threadHandle, INFINITE );
+	WaitForMultipleObjects ( 2, threadHandles, true, INFINITE );
 }
