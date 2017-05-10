@@ -57,8 +57,7 @@ DXGIOutputDuplication::DXGIOutputDuplication(IDXGIAdapter1* pAdapter,
 
 HRESULT DXGIOutputDuplication::GetDesc(DXGI_OUTPUT_DESC& desc)
 {
-	m_DXGIOutput1->GetDesc(&desc);
-	return S_OK;
+	return m_DXGIOutput1->GetDesc(&desc);
 }
 
 HRESULT DXGIOutputDuplication::AcquireNextFrame(IDXGISurface1** pDXGISurface, DXGIPointerInfo*& pDXGIPointer)
@@ -76,8 +75,7 @@ HRESULT DXGIOutputDuplication::AcquireNextFrame(IDXGISurface1** pDXGISurface, DX
 	D3D11_TEXTURE2D_DESC desc;
 	spTextureResource->GetDesc ( &desc );
 
-	D3D11_TEXTURE2D_DESC texDesc;
-	ZeroMemory ( &texDesc, sizeof ( texDesc ) );
+	D3D11_TEXTURE2D_DESC texDesc = { 0, };
 	texDesc.Width = desc.Width;
 	texDesc.Height = desc.Height;
 	texDesc.MipLevels = 1;
@@ -155,8 +153,7 @@ HRESULT DXGIOutputDuplication::AcquireNextFrame(IDXGISurface1** pDXGISurface, DX
 
 HRESULT DXGIOutputDuplication::ReleaseFrame()
 {
-	m_DXGIOutputDuplication->ReleaseFrame();
-	return S_OK;
+	return m_DXGIOutputDuplication->ReleaseFrame();
 }
 
 bool DXGIOutputDuplication::IsPrimary()
@@ -380,9 +377,7 @@ HRESULT DXGIManager::GetOutputRect(RECT& rc)
 	return S_OK;
 }
 
-bool IsCollision ( RECT & rc1, RECT & rc2 ) { return ( rc1.left <= rc2.right && rc1.top <= rc2.bottom && rc2.left <= rc1.right && rc2.top <= rc1.bottom ); }
-
-HRESULT DXGIManager::GetOutputBits(BYTE* pBits, RECT & dest )
+HRESULT DXGIManager::GetOutputBits(BYTE* pBits )
 {
 	HRESULT hr = S_OK;
 
@@ -402,11 +397,10 @@ HRESULT DXGIManager::GetOutputBits(BYTE* pBits, RECT & dest )
 		DXGIOutputDuplication* out = *iter;
 	
 		DXGI_OUTPUT_DESC outDesc;
-		out->GetDesc(outDesc);
+		hr = out->GetDesc(outDesc);
+		if( FAILED(hr) )
+			break;
 		RECT rcOutCoords = outDesc.DesktopCoordinates;
-
-		if ( !IsCollision ( rcOutCoords, dest ) )
-			continue;
 
 		CComPtr<IDXGISurface1> spDXGISurface1;
 		hr = out->AcquireNextFrame(&spDXGISurface1, m_pDXGIPointer);
@@ -414,7 +408,12 @@ HRESULT DXGIManager::GetOutputBits(BYTE* pBits, RECT & dest )
 			break;
 
 		DXGI_MAPPED_RECT map;
-		spDXGISurface1->Map(&map, DXGI_MAP_READ);
+		hr = spDXGISurface1->Map(&map, DXGI_MAP_READ);
+		if( FAILED(hr) )
+		{
+			out->ReleaseFrame ();
+			break;
+		}
 
 		RECT rcDesktop = outDesc.DesktopCoordinates;
 		DWORD dwWidth = rcDesktop.right - rcDesktop.left;
@@ -432,8 +431,7 @@ HRESULT DXGIManager::GetOutputBits(BYTE* pBits, RECT & dest )
 					DWORD dwStripe = dwWidth*4;
 					for(DWORD i=0; i<dwHeight; ++i)
 					{
-						//memcpy_s(pBuf + (rcDesktop.left + (i + rcDesktop.top)*dwOutputWidth)*4, dwStripe, map.pBits + i*map.Pitch, dwStripe);
-						memcpy ( pBuf + ( rcDesktop.left + ( i + rcDesktop.top )*dwOutputWidth ) * 4, map.pBits + i*map.Pitch, dwStripe );
+						memcpy_s(pBuf + (rcDesktop.left + (i + rcDesktop.top)*dwOutputWidth)*4, dwStripe, map.pBits + i*map.Pitch, dwStripe);
 					}
 				}
 				break;

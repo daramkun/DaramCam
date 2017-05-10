@@ -1,5 +1,80 @@
 #include "DaramCam.h"
 
+class DCWASAPIAudioCapturer : public DCAudioCapturer
+{
+public:
+	DCWASAPIAudioCapturer ( IMMDevice * pDevice );
+	virtual ~DCWASAPIAudioCapturer ();
+
+public:
+	virtual void Begin ();
+	virtual void End ();
+
+	virtual unsigned GetChannels ();
+	virtual unsigned GetBitsPerSample ();
+	virtual unsigned GetSamplerate ();
+
+	virtual void* GetAudioData ( unsigned * bufferLength );
+
+public:
+	float GetVolume ();
+	void SetVolume ( float volume );
+
+protected:
+	virtual DWORD GetStreamFlags ();
+
+private:
+	IAudioClient *pAudioClient;
+	IAudioCaptureClient * pCaptureClient;
+
+	ISimpleAudioVolume * pAudioVolume;
+	float originalVolume;
+
+	WAVEFORMATEX *pwfx;
+
+	char * byteArray;
+	unsigned byteArrayLength;
+
+	UINT32 bufferFrameCount;
+
+	HANDLE hWakeUp;
+};
+
+class DCWASAPILoopbackAudioCapturer : public DCWASAPIAudioCapturer
+{
+public:
+	DCWASAPILoopbackAudioCapturer ();
+
+protected:
+	virtual DWORD GetStreamFlags ();
+};
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+DARAMCAM_EXPORTS DCAudioCapturer * DCCreateWASAPIAudioCapturer ( IMMDevice * pDevice )
+{
+	return new DCWASAPIAudioCapturer ( pDevice );
+}
+DARAMCAM_EXPORTS DCAudioCapturer * DCCreateWASAPILoopbackAudioCapturer ()
+{
+	return new DCWASAPILoopbackAudioCapturer ();
+}
+
+DARAMCAM_EXPORTS float DCGetVolumeFromWASAPIAudioCapturer ( DCAudioCapturer * capturer )
+{
+	return dynamic_cast< DCWASAPIAudioCapturer* >( capturer )->GetVolume ();
+}
+DARAMCAM_EXPORTS void DCSetVolumeToWASAPIAudioCapturer ( DCAudioCapturer * capturer, float volume )
+{
+	dynamic_cast< DCWASAPIAudioCapturer* >( capturer )->SetVolume ( volume );
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
 #define REFTIMES_PER_SEC  10000000
 #define REFTIMES_PER_MILLISEC  10000
 
@@ -151,35 +226,11 @@ void DCWASAPIAudioCapturer::SetVolume ( float volume )
 
 DWORD DCWASAPIAudioCapturer::GetStreamFlags () { return 0; }
 
-void DCWASAPIAudioCapturer::GetMultimediaDevices ( std::vector<IMMDevice*> & devices )
-{
-	IMMDeviceEnumerator *pEnumerator;
-	IMMDeviceCollection * pCollection;
+////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////
 
-	CoCreateInstance ( CLSID_MMDeviceEnumerator, NULL, CLSCTX_ALL, IID_IMMDeviceEnumerator, ( void** ) &pEnumerator );
-	pEnumerator->EnumAudioEndpoints ( eCapture, DEVICE_STATE_ACTIVE, &pCollection );
-
-	UINT collectionCount;
-	pCollection->GetCount ( &collectionCount );
-	for ( UINT i = 0; i < collectionCount; ++i )
-	{
-		IMMDevice * pDevice;
-		pCollection->Item ( i, &pDevice );
-		devices.push_back ( pDevice );
-	}
-
-	pCollection->Release ();
-	pEnumerator->Release ();
-}
-
-void DCWASAPIAudioCapturer::ReleaseMultimediaDevices ( std::vector<IMMDevice*> & devices )
-{
-	for ( auto i = devices.begin (); i != devices.end (); ++i )
-		( *i )->Release ();
-	devices.clear ();
-}
-
-IMMDevice * DCWASAPIAudioCapturer::GetDefaultMultimediaDevice ()
+IMMDevice * _GetDefaultMultimediaDevice ()
 {
 	IMMDeviceEnumerator *pEnumerator;
 	IMMDevice * pDevice;
@@ -192,7 +243,7 @@ IMMDevice * DCWASAPIAudioCapturer::GetDefaultMultimediaDevice ()
 }
 
 DCWASAPILoopbackAudioCapturer::DCWASAPILoopbackAudioCapturer ()
-	: DCWASAPIAudioCapturer ( DCWASAPIAudioCapturer::GetDefaultMultimediaDevice () )
+	: DCWASAPIAudioCapturer ( _GetDefaultMultimediaDevice () )
 {
 
 }

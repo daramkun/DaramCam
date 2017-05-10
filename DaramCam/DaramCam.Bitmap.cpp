@@ -1,19 +1,17 @@
 #include "DaramCam.h"
+#include "DaramCam.Internal.h"
 
 #pragma intrinsic(memcpy) 
 
 DCBitmap::DCBitmap ( unsigned _width, unsigned _height, unsigned _colorDepth )
-	: byteArray ( nullptr ), wicCached ( nullptr )
+	: byteArray ( nullptr )
 {
 	Resize ( _width, _height, _colorDepth );
 }
 
 DCBitmap::~DCBitmap ()
 {
-	if ( wicCached )
-		wicCached->Release ();
-
-	if( byteArray )
+	if ( byteArray )
 		delete [] byteArray;
 	byteArray = nullptr;
 }
@@ -29,33 +27,30 @@ unsigned DCBitmap::GetByteArraySize ()
 	return colorDepth == 3 ? ( ( ( stride + 3 ) / 4 ) * 4 ) * height : width * height * 4;
 }
 
-IWICBitmap * DCBitmap::ToWICBitmap ( IWICImagingFactory * factory, bool useCached )
+IWICBitmap * DCBitmap::ToWICBitmap ( bool useShared )
 {
 	IWICBitmap * bitmap;
-	if ( useCached && ( wicCached != nullptr ) )
-		bitmap = wicCached;
+	if ( useShared )
+	{
+		g_piFactory->CreateBitmapFromMemory ( width, height, colorDepth == 3 ? GUID_WICPixelFormat24bppBGR : GUID_WICPixelFormat32bppBGRA,
+			stride, GetByteArraySize (), GetByteArray (), &bitmap );
+	}
 	else
 	{
-		factory->CreateBitmap ( width, height, colorDepth == 3 ? GUID_WICPixelFormat24bppBGR : GUID_WICPixelFormat32bppBGRA, WICBitmapCacheOnDemand, &bitmap );
-		if ( useCached )
-			wicCached = bitmap;
+		g_piFactory->CreateBitmap ( width, height, colorDepth == 3 ? GUID_WICPixelFormat24bppBGR : GUID_WICPixelFormat32bppBGRA, WICBitmapCacheOnDemand, &bitmap );
+
+		unsigned arrLen = GetByteArraySize ();
+		WICRect wicRect = { 0, 0, ( int ) width, ( int ) height };
+		IWICBitmapLock * bitmapLock;
+		bitmap->Lock ( &wicRect, WICBitmapLockWrite, &bitmapLock );
+
+		WICInProcPointer ptr;
+		bitmapLock->GetDataPointer ( &arrLen, &ptr );
+		unsigned wicStride = 0;
+		bitmapLock->GetStride ( &wicStride );
+		memcpy ( ptr, byteArray, stride * height );
+		bitmapLock->Release ();
 	}
-
-	unsigned arrLen = GetByteArraySize ();
-	
-	WICRect wicRect = { 0, 0, ( int ) width, ( int ) height };
-	IWICBitmapLock * bitmapLock;
-	bitmap->Lock ( &wicRect, WICBitmapLockWrite, &bitmapLock );
-
-	WICInProcPointer ptr;
-	bitmapLock->GetDataPointer ( &arrLen, &ptr );
-	unsigned wicStride = 0;
-	bitmapLock->GetStride ( &wicStride );
-	memcpy ( ptr, byteArray, stride * height );
-	bitmapLock->Release ();
-
-	if ( useCached )
-		bitmap->AddRef ();
 
 	return bitmap;
 }

@@ -51,6 +51,9 @@
     <ClInclude Include="External Libraries\DXGIManager\DXGIManager.h">
       <Filter>External Libraries\DXGIManager</Filter>
     </ClInclude>
+    <ClInclude Include="DaramCam.Internal.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="DaramCam.Bitmap.cpp">

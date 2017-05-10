@@ -13,13 +13,20 @@
 //#include <d3d11.h>
 #pragma comment ( lib, "d3d11.lib" )
 
+IWICImagingFactory * g_piFactory;
+
 void DCStartup ()
 {
 	CoInitializeEx ( NULL, COINIT_APARTMENTTHREADED );
+
+	CoCreateInstance ( CLSID_WICImagingFactory, NULL, CLSCTX_INPROC_SERVER, IID_IWICImagingFactory, ( LPVOID* ) &g_piFactory );
 }
 
 void DCShutdown ()
 {
+	if ( g_piFactory )
+		g_piFactory->Release ();
+
 	CoUninitialize ();
 }
 
@@ -101,4 +108,32 @@ DARAMCAM_EXPORTS double DCGetCurrentTime ()
 	QueryPerformanceFrequency ( &performanceFrequency );
 	QueryPerformanceCounter ( &getTime );
 	return ( getTime.QuadPart / ( double ) performanceFrequency.QuadPart );
+}
+
+DARAMCAM_EXPORTS void DCGetMultimediaDevices ( std::vector<IMMDevice*>& devices )
+{
+	IMMDeviceEnumerator *pEnumerator;
+	IMMDeviceCollection * pCollection;
+
+	CoCreateInstance ( CLSID_MMDeviceEnumerator, NULL, CLSCTX_ALL, IID_IMMDeviceEnumerator, ( void** ) &pEnumerator );
+	pEnumerator->EnumAudioEndpoints ( eCapture, DEVICE_STATE_ACTIVE, &pCollection );
+
+	UINT collectionCount;
+	pCollection->GetCount ( &collectionCount );
+	for ( UINT i = 0; i < collectionCount; ++i )
+	{
+		IMMDevice * pDevice;
+		pCollection->Item ( i, &pDevice );
+		devices.push_back ( pDevice );
+	}
+
+	pCollection->Release ();
+	pEnumerator->Release ();
+}
+
+DARAMCAM_EXPORTS void DCReleaseMultimediaDevices ( std::vector<IMMDevice*>& devices )
+{
+	for ( auto i = devices.begin (); i != devices.end (); ++i )
+		( *i )->Release ();
+	devices.clear ();
 }

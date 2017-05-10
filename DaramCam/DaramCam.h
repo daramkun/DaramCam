@@ -41,6 +41,8 @@ DARAMCAM_EXPORTS void DCGetProcessName ( DWORD pId, char * nameBuffer, unsigned 
 DARAMCAM_EXPORTS HWND DCGetActiveWindowFromProcess ( DWORD pId );
 DARAMCAM_EXPORTS BSTR DCGetDeviceName ( IMMDevice * pDevice );
 DARAMCAM_EXPORTS double DCGetCurrentTime ();
+DARAMCAM_EXPORTS void DCGetMultimediaDevices ( std::vector<IMMDevice*> & devices );
+DARAMCAM_EXPORTS void DCReleaseMultimediaDevices ( std::vector<IMMDevice*> & devices );
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -62,7 +64,7 @@ public:
 
 	unsigned GetByteArraySize ();
 
-	IWICBitmap * ToWICBitmap ( IWICImagingFactory * factory, bool useCached = true );
+	IWICBitmap * ToWICBitmap ( bool useShared = true );
 
 public:
 	void Resize ( unsigned width, unsigned height, unsigned colorDepth = 3 );
@@ -77,8 +79,6 @@ public:
 private:
 	unsigned char * byteArray;
 	unsigned width, height, colorDepth, stride;
-
-	IWICBitmap * wicCached;
 };
 
 // Abstract Screen Capturer
@@ -146,116 +146,29 @@ public:
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // GDI Screen Capturer
-class DARAMCAM_EXPORTS DCGDIScreenCapturer : public DCScreenCapturer
-{
-public:
-	DCGDIScreenCapturer ( HWND hWnd = NULL );
-	virtual ~DCGDIScreenCapturer ();
-
-public:
-	virtual void Capture ();
-	virtual DCBitmap* GetCapturedBitmap ();
-
-public:
-	void SetRegion ( RECT * region = nullptr );
-
-private:
-	HWND hWnd;
-	HDC desktopDC;
-	HDC captureDC;
-	HBITMAP captureBitmap;
-
-	RECT * captureRegion;
-
-	DCBitmap capturedBitmap;
-};
+DARAMCAM_EXPORTS DCScreenCapturer* DCCreateGDIScreenCapturer ( HWND hWnd = NULL );
+DARAMCAM_EXPORTS void DCSetRegionToGDIScreenCapturer ( DCScreenCapturer * capturer, const RECT * region = NULL );
 
 enum DCDXGIScreenCapturerRange
 {
 	DCDXGIScreenCapturerRange_Desktop,
 	DCDXGIScreenCapturerRange_MainMonitor,
+	DCDXGIScreenCapturerRange_SubMonitors,
 };
 
 // DXGI Screen Capturer
-class DARAMCAM_EXPORTS DCDXGIScreenCapturer : public DCScreenCapturer
-{
-public:
-	DCDXGIScreenCapturer ( DCDXGIScreenCapturerRange range = DCDXGIScreenCapturerRange_Desktop );
-	virtual ~DCDXGIScreenCapturer ();
-
-public:
-	virtual void Capture ();
-	virtual DCBitmap * GetCapturedBitmap ();
-
-public:
-	void SetRegion ( RECT * region = nullptr );
-
-private:
-	void* dxgiManager;
-	BYTE* tempBits;
-
-	RECT * captureRegion;
-	DCBitmap capturedBitmap;
-};
+DARAMCAM_EXPORTS DCScreenCapturer* DCCreateDXGIScreenCapturer ( DCDXGIScreenCapturerRange range = DCDXGIScreenCapturerRange_Desktop );
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // WASAPI Audio Capturer
-class DARAMCAM_EXPORTS DCWASAPIAudioCapturer : public DCAudioCapturer
-{
-public:
-	DCWASAPIAudioCapturer ( IMMDevice * pDevice );
-	virtual ~DCWASAPIAudioCapturer ();
+DARAMCAM_EXPORTS DCAudioCapturer* DCCreateWASAPIAudioCapturer ( IMMDevice * pDevice );
+DARAMCAM_EXPORTS DCAudioCapturer* DCCreateWASAPILoopbackAudioCapturer ();
 
-public:
-	virtual void Begin ();
-	virtual void End ();
-
-	virtual unsigned GetChannels ();
-	virtual unsigned GetBitsPerSample ();
-	virtual unsigned GetSamplerate ();
-
-	virtual void* GetAudioData ( unsigned * bufferLength );
-
-public:
-	float GetVolume ();
-	void SetVolume ( float volume );
-
-protected:
-	virtual DWORD GetStreamFlags ();
-
-public:
-	static void GetMultimediaDevices ( std::vector<IMMDevice*> & devices );
-	static void ReleaseMultimediaDevices ( std::vector<IMMDevice*> & devices );
-	static IMMDevice* GetDefaultMultimediaDevice ();
-
-private:
-	IAudioClient *pAudioClient;
-	IAudioCaptureClient * pCaptureClient;
-
-	ISimpleAudioVolume * pAudioVolume;
-	float originalVolume;
-
-	WAVEFORMATEX *pwfx;
-
-	char * byteArray;
-	unsigned byteArrayLength;
-
-	UINT32 bufferFrameCount;
-
-	HANDLE hWakeUp;
-};
-
-class DARAMCAM_EXPORTS DCWASAPILoopbackAudioCapturer : public DCWASAPIAudioCapturer
-{
-public:
-	DCWASAPILoopbackAudioCapturer ();
-
-protected:
-	virtual DWORD GetStreamFlags ();
-};
+DARAMCAM_EXPORTS float DCGetVolumeFromWASAPIAudioCapturer ( DCAudioCapturer * capturer );
+DARAMCAM_EXPORTS void DCSetVolumeToWASAPIAudioCapturer ( DCAudioCapturer * capturer, float volume );
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -272,25 +185,11 @@ enum DCWICImageType
 
 // Image File Generator via Windows Imaging Component
 // Can generate BMP, JPEG, PNG, TIFF
-class DARAMCAM_EXPORTS DCWICImageGenerator : public DCImageGenerator
-{
-public:
-	DCWICImageGenerator ( DCWICImageType imageType );
-	virtual ~DCWICImageGenerator ();
-
-public:
-	virtual void Generate ( IStream * stream, DCBitmap * bitmap );
-
-private:
-	IWICImagingFactory * piFactory;
-	GUID containerGUID;
-};
+DARAMCAM_EXPORTS DCImageGenerator* DCCreateWICImageGenerator ( DCWICImageType imageType );
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-
-struct WICVG_CONTAINER { IWICBitmap * bitmapSource; UINT deltaTime; };
 
 enum {
 	WICVG_FRAMETICK_30FPS = 33,
@@ -299,31 +198,7 @@ enum {
 
 // Video File Generator via Windows Imaging Component
 // Can generate GIF only
-class DARAMCAM_EXPORTS DCWICVideoGenerator : public DCVideoGenerator
-{
-	friend DWORD WINAPI WICVG_Progress ( LPVOID vg );
-	friend DWORD WINAPI WICVG_Capturer ( LPVOID vg );
-public:
-	DCWICVideoGenerator ( unsigned frameTick = WICVG_FRAMETICK_30FPS );
-	virtual ~DCWICVideoGenerator ();
-
-public:
-	virtual void Begin ( IStream * stream, DCScreenCapturer * capturer );
-	virtual void End ();
-
-private:
-	IWICImagingFactory * piFactory;
-
-	IStream * stream;
-	DCScreenCapturer * capturer;
-
-	HANDLE threadHandles [ 2 ];
-	bool threadRunning;
-
-	unsigned frameTick;
-
-	Concurrency::concurrent_queue<WICVG_CONTAINER> capturedQueue;
-};
+DARAMCAM_EXPORTS DCVideoGenerator* DCCreateWICVideoGenerator ( unsigned frameTick = WICVG_FRAMETICK_30FPS );
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -331,22 +206,6 @@ private:
 
 // Audio File Generator via Original Code
 // Can generate WAV only
-class DARAMCAM_EXPORTS DCWaveAudioGenerator : public DCAudioGenerator
-{
-	friend DWORD WINAPI WAVAG_Progress ( LPVOID vg );
-public:
-	DCWaveAudioGenerator ();
-
-public:
-	virtual void Begin ( IStream * stream, DCAudioCapturer * capturer );
-	virtual void End ();
-
-private:
-	IStream * stream;
-	DCAudioCapturer * capturer;
-
-	bool threadRunning;
-	HANDLE threadHandle;
-};
+DARAMCAM_EXPORTS DCAudioGenerator* DCCreateWaveAudioGenerator ();
 
 #endif

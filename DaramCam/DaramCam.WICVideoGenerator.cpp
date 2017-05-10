@@ -1,21 +1,57 @@
 ﻿#include "DaramCam.h"
+#include "DaramCam.Internal.h"
 
 #pragma comment ( lib, "winmm.lib" )
 
 #include <ppltasks.h>
 
+struct WICVG_CONTAINER { IWICBitmap * bitmapSource; UINT deltaTime; };
+
+class DCWICVideoGenerator : public DCVideoGenerator
+{
+	friend DWORD WINAPI WICVG_Progress ( LPVOID vg );
+	friend DWORD WINAPI WICVG_Capturer ( LPVOID vg );
+public:
+	DCWICVideoGenerator ( unsigned frameTick );
+	virtual ~DCWICVideoGenerator ();
+
+public:
+	virtual void Begin ( IStream * stream, DCScreenCapturer * capturer );
+	virtual void End ();
+
+private:
+	IStream * stream;
+	DCScreenCapturer * capturer;
+
+	HANDLE threadHandles [ 2 ];
+	bool threadRunning;
+
+	unsigned frameTick;
+
+	Concurrency::concurrent_queue<WICVG_CONTAINER> capturedQueue;
+};
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+DARAMCAM_EXPORTS DCVideoGenerator * DCCreateWICVideoGenerator ( unsigned frameTick )
+{
+	return new DCWICVideoGenerator ( frameTick );
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
 DCWICVideoGenerator::DCWICVideoGenerator ( unsigned _frameTick )
 {
-	CoCreateInstance ( CLSID_WICImagingFactory, NULL, CLSCTX_INPROC_SERVER, IID_IWICImagingFactory, ( LPVOID* ) &piFactory );
+	CoCreateInstance ( CLSID_WICImagingFactory, NULL, CLSCTX_INPROC_SERVER, IID_IWICImagingFactory, ( LPVOID* ) &g_piFactory );
 
 	frameTick = _frameTick;
 }
 
-DCWICVideoGenerator::~DCWICVideoGenerator ()
-{
-	if ( piFactory )
-		piFactory->Release ();
-}
+DCWICVideoGenerator::~DCWICVideoGenerator () { }
 
 DWORD WINAPI WICVG_Progress ( LPVOID vg )
 {
@@ -24,10 +60,10 @@ DWORD WINAPI WICVG_Progress ( LPVOID vg )
 	IWICStream * piStream;
 	IWICBitmapEncoder * piEncoder;
 
-	videoGen->piFactory->CreateStream ( &piStream );
+	g_piFactory->CreateStream ( &piStream );
 	piStream->InitializeFromIStream ( videoGen->stream );
 	
-	videoGen->piFactory->CreateEncoder ( GUID_ContainerFormatGif, NULL, &piEncoder );
+	g_piFactory->CreateEncoder ( GUID_ContainerFormatGif, NULL, &piEncoder );
 	HRESULT hr = piEncoder->Initialize ( piStream, WICBitmapEncoderNoCache );
 
 	IWICMetadataQueryWriter * queryWriter;
@@ -81,13 +117,13 @@ DWORD WINAPI WICVG_Progress ( LPVOID vg )
 			continue;
 		}
 
-		piEncoder->CreateNewFrame ( &piBitmapFrame, &pPropertybag );
+		hr = piEncoder->CreateNewFrame ( &piBitmapFrame, &pPropertybag );
 		if ( hr != S_OK )
 		{
 			videoGen->threadRunning = false;
 			return -1;
 		}
-		piBitmapFrame->Initialize ( pPropertybag );
+		hr = piBitmapFrame->Initialize ( pPropertybag );
 
 		WICVG_CONTAINER container;
 		if ( !videoGen->capturedQueue.try_pop ( container ) )
@@ -99,6 +135,7 @@ DWORD WINAPI WICVG_Progress ( LPVOID vg )
 		container.bitmapSource->GetSize ( &imgWidth, &imgHeight );
 		piBitmapFrame->SetSize ( imgWidth, imgHeight );
 		piBitmapFrame->WriteSource ( container.bitmapSource, nullptr );
+		container.bitmapSource->Release ();
 
 		piBitmapFrame->GetMetadataQueryWriter ( &queryWriter );
 		piBitmapFrame->Commit ();
@@ -106,8 +143,6 @@ DWORD WINAPI WICVG_Progress ( LPVOID vg )
 		propValue.uiVal = ( WORD ) container.deltaTime;
 		queryWriter->SetMetadataByName ( TEXT ( "/grctlext/Delay" ), &propValue );
 		queryWriter->Release ();
-
-		container.bitmapSource->Release ();
 
 		piBitmapFrame->Release ();
 
@@ -140,7 +175,7 @@ DWORD WINAPI WICVG_Capturer ( LPVOID vg )
 
 			WICVG_CONTAINER container;
 			container.deltaTime = ( currentTick - lastTick ) / 10;
-			container.bitmapSource = bitmap->ToWICBitmap ( videoGen->piFactory, false );
+			container.bitmapSource = bitmap->ToWICBitmap ( false );
 
 			videoGen->capturedQueue.push ( container );
 

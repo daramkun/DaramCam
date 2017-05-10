@@ -70,7 +70,7 @@ public:
 	CaptureSource GetCaptureSource();
 
 	HRESULT GetOutputRect(RECT& rc);
-	HRESULT GetOutputBits(BYTE* pBits, RECT & dest);
+	HRESULT GetOutputBits(BYTE* pBits);
 private:
 	HRESULT Init();
 	int GetMonitorCount();

@@ -175,6 +175,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="DaramCam.h" />
+    <ClInclude Include="DaramCam.Internal.h" />
     <ClInclude Include="External Libraries\DXGIManager\DXGIManager.h" />
     <ClInclude Include="resource.h" />
   </ItemGroup>

@@ -1,4 +1,31 @@
 #include "DaramCam.h"
+#include "DaramCam.Internal.h"
+
+class DARAMCAM_EXPORTS DCWICImageGenerator : public DCImageGenerator
+{
+public:
+	DCWICImageGenerator ( DCWICImageType imageType );
+	virtual ~DCWICImageGenerator ();
+
+public:
+	virtual void Generate ( IStream * stream, DCBitmap * bitmap );
+
+private:
+	GUID containerGUID;
+};
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+DARAMCAM_EXPORTS DCImageGenerator * DCCreateWICImageGenerator ( DCWICImageType imageType )
+{
+	return new DCWICImageGenerator ( imageType );
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////
 
 DCWICImageGenerator::DCWICImageGenerator ( DCWICImageType imageType )
 {
@@ -9,25 +36,19 @@ DCWICImageGenerator::DCWICImageGenerator ( DCWICImageType imageType )
 	case DCWICImageType_PNG: containerGUID = GUID_ContainerFormatPng; break;
 	case DCWICImageType_TIFF: containerGUID = GUID_ContainerFormatTiff; break;
 	}
-
-	CoCreateInstance ( CLSID_WICImagingFactory, NULL, CLSCTX_INPROC_SERVER, IID_IWICImagingFactory, ( LPVOID* ) &piFactory );
 }
 
-DCWICImageGenerator::~DCWICImageGenerator ()
-{
-	if ( piFactory )
-		piFactory->Release ();
-}
+DCWICImageGenerator::~DCWICImageGenerator () { }
 
 void DCWICImageGenerator::Generate ( IStream * stream, DCBitmap * bitmap )
 {
 	IWICStream * piStream = nullptr;
-	piFactory->CreateStream ( &piStream );
+	g_piFactory->CreateStream ( &piStream );
 
 	piStream->InitializeFromIStream ( stream );
 
 	IWICBitmapEncoder * piEncoder;
-	piFactory->CreateEncoder ( containerGUID, NULL, &piEncoder );
+	g_piFactory->CreateEncoder ( containerGUID, NULL, &piEncoder );
 	piEncoder->Initialize ( piStream, WICBitmapEncoderNoCache );
 
 	IWICBitmapFrameEncode *piBitmapFrame = NULL;
@@ -40,7 +61,10 @@ void DCWICImageGenerator::Generate ( IStream * stream, DCBitmap * bitmap )
 	WICPixelFormatGUID formatGUID = bitmap->GetColorDepth () == 3 ? GUID_WICPixelFormat24bppBGR : GUID_WICPixelFormat32bppBGRA;
 	piBitmapFrame->SetPixelFormat ( &formatGUID );
 
-	piBitmapFrame->WritePixels ( bitmap->GetHeight (), bitmap->GetStride (), bitmap->GetByteArraySize (), bitmap->GetByteArray () );
+	WICRect wicRect = { 0, 0, ( int ) bitmap->GetWidth (), ( int ) bitmap->GetHeight () };
+	auto wicBitmap = bitmap->ToWICBitmap ();
+	piBitmapFrame->WriteSource ( wicBitmap, &wicRect );
+	wicBitmap->Release ();
 
 	piBitmapFrame->Commit ();
 

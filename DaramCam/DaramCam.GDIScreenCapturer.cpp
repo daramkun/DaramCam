@@ -1,6 +1,48 @@
 #include "DaramCam.h"
 #include <Windows.h>
 
+class DCGDIScreenCapturer : public DCScreenCapturer
+{
+public:
+	DCGDIScreenCapturer ( HWND hWnd = NULL );
+	virtual ~DCGDIScreenCapturer ();
+
+public:
+	virtual void Capture ();
+	virtual DCBitmap* GetCapturedBitmap ();
+
+public:
+	void SetRegion ( const RECT * region = nullptr );
+
+private:
+	HWND hWnd;
+	HDC desktopDC;
+	HDC captureDC;
+	HBITMAP captureBitmap;
+
+	const RECT * captureRegion;
+
+	DCBitmap capturedBitmap;
+};
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+DARAMCAM_EXPORTS DCScreenCapturer * DCCreateGDIScreenCapturer ( HWND hWnd )
+{
+	return new DCGDIScreenCapturer ( hWnd );
+}
+
+DARAMCAM_EXPORTS void DCSetRegionToGDIScreenCapturer ( DCScreenCapturer * capturer, const RECT * region )
+{
+	return dynamic_cast< DCGDIScreenCapturer* > ( capturer )->SetRegion ( region );
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
 DCGDIScreenCapturer::DCGDIScreenCapturer ( HWND hWnd )
 	: capturedBitmap ( 0, 0 ), hWnd ( hWnd )
 {
@@ -37,7 +79,7 @@ void DCGDIScreenCapturer::Capture ()
 
 DCBitmap * DCGDIScreenCapturer::GetCapturedBitmap () { return &capturedBitmap; }
 
-void DCGDIScreenCapturer::SetRegion ( RECT * _region )
+void DCGDIScreenCapturer::SetRegion ( const RECT * _region )
 {
 	if ( _region == nullptr && captureRegion == nullptr )
 		return;

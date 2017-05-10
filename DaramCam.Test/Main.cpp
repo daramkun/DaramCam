@@ -42,18 +42,12 @@ int main ( void )
 
 	/**/SHCreateStreamOnFileEx ( TEXT ( "Z:\\Test.png" ), STGM_READWRITE | STGM_CREATE, 0, false, 0, &stream );
 
-	//DCGDIScreenCapturer * screenCapturer = new DCGDIScreenCapturer ( hWnd );
-	//DCGDIScreenCapturer * screenCapturer = new DCGDIScreenCapturer ( 0 );
-	DCDXGIScreenCapturer * screenCapturer = new DCDXGIScreenCapturer ();
-	RECT region = { 1920, 0, 1920 * 2, 1080 };
-	//RECT region = { 0, 0, 1920, 1080 };
-	//RECT region = { 1920, 0, 1920 + 960, 540 };
-	//RECT region = { 0, 0, 1920, 1080 };
-	//RECT region = { 0, 0, 960, 540 };
-	screenCapturer->SetRegion ( &region );
+	//DCScreenCapturer * screenCapturer = new DCCreateGDIScreenCapturer ( hWnd );
+	//DCScreenCapturer * screenCapturer = DCCreateGDIScreenCapturer ( 0 );
+	DCScreenCapturer * screenCapturer = DCCreateDXGIScreenCapturer ( DCDXGIScreenCapturerRange_SubMonitors );
 	screenCapturer->Capture ();
 
-	DCImageGenerator * imgGen = new DCWICImageGenerator ( DCWICImageType_PNG );
+	DCImageGenerator * imgGen = DCCreateWICImageGenerator ( DCWICImageType_PNG );
 	imgGen->Generate ( stream, screenCapturer->GetCapturedBitmap () );
 
 	stream->Release ();
@@ -62,7 +56,7 @@ int main ( void )
 
 	SHCreateStreamOnFileEx ( TEXT ( "Z:\\Test.gif" ), STGM_READWRITE | STGM_CREATE, 0, false, 0, &stream );
 
-	DCVideoGenerator * vidGen = new DCWICVideoGenerator ( 33 );
+	DCVideoGenerator * vidGen = DCCreateWICVideoGenerator ( WICVG_FRAMETICK_30FPS );
 	vidGen->Begin ( stream, screenCapturer );
 	Sleep ( 10000 );
 	vidGen->End ();
@@ -75,7 +69,7 @@ int main ( void )
 	/*
 	///// Audio Capture
 	std::vector<IMMDevice*> devices;
-	DCWASAPIAudioCapturer::GetMultimediaDevices ( devices );
+	DCGetMultimediaDevices ( devices );
 
 	for ( int i = 0; i < devices.size (); ++i )
 	{
@@ -86,14 +80,12 @@ int main ( void )
 	int selected;
 	scanf ( "%d", &selected );
 
-	DCWASAPIAudioCapturer * audioCapturer = new DCWASAPIAudioCapturer ( devices [ selected ] );
-	DCWASAPIAudioCapturer::ReleaseMultimediaDevices ( devices );
+	DCAudioCapturer * audioCapturer = DCCreateWASAPIAudioCapturer ( devices [ selected ] );
+	DCReleaseMultimediaDevices ( devices );
 
 	SHCreateStreamOnFileEx ( TEXT ( "Z:\\Test.wav" ), STGM_READWRITE | STGM_CREATE, 0, false, 0, &stream );
 
-	DCAudioGenerator * audGen = new DCWaveAudioGenerator ();
-
-	printf ( "Master Volume: %f\n", audioCapturer->GetVolume () );
+	DCAudioGenerator * audGen = DCCreateWaveAudioGenerator ();
 
 	audGen->Begin ( stream, audioCapturer );
 	Sleep ( 10000 );
