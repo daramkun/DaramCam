@@ -3,21 +3,10 @@
 
 #include <Windows.h>
 #include <wincodec.h>
-#include <wincodecsdk.h>
-#include <Audioclient.h>
 #include <Mmdeviceapi.h>
-#include <mfapi.h>
-#include <mfidl.h>
-#include <mfreadwrite.h>
-#include <mferror.h>
 #include <shlwapi.h>
-#include <dxgi.h>
-#include <dxgi1_2.h>
-#include <d3d9.h>
-#include <gl/GL.h>
 
 #include <vector>
-#include <concurrent_queue.h>
 
 #if ! ( defined ( _WIN32 ) || defined ( _WIN64 ) || defined ( WINDOWS ) || defined ( _WINDOWS ) )
 #error "This library is for Windows only."
@@ -64,7 +53,7 @@ public:
 
 	unsigned GetByteArraySize ();
 
-	IWICBitmap * ToWICBitmap ( bool useShared = true );
+	IWICBitmap * ToWICBitmap ();
 
 public:
 	void Resize ( unsigned width, unsigned height, unsigned colorDepth = 3 );
@@ -186,6 +175,7 @@ enum DCWICImageType
 // Image File Generator via Windows Imaging Component
 // Can generate BMP, JPEG, PNG, TIFF
 DARAMCAM_EXPORTS DCImageGenerator* DCCreateWICImageGenerator ( DCWICImageType imageType );
+DARAMCAM_EXPORTS void DCSetSizeToWICImageGenerator ( DCImageGenerator * generator, const SIZE * size = nullptr );
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -199,6 +189,7 @@ enum {
 // Video File Generator via Windows Imaging Component
 // Can generate GIF only
 DARAMCAM_EXPORTS DCVideoGenerator* DCCreateWICVideoGenerator ( unsigned frameTick = WICVG_FRAMETICK_30FPS );
+DARAMCAM_EXPORTS void DCSetSizeToWICVideoGenerator ( DCVideoGenerator * generator, const SIZE * size );
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////

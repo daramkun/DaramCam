@@ -3,9 +3,10 @@
 
 #pragma comment ( lib, "winmm.lib" )
 
+#include <concurrent_queue.h>
 #include <ppltasks.h>
 
-struct WICVG_CONTAINER { IWICBitmap * bitmapSource; UINT deltaTime; };
+struct WICVG_CONTAINER { IWICBitmapSource * bitmapSource; UINT deltaTime; };
 
 class DCWICVideoGenerator : public DCVideoGenerator
 {
@@ -19,6 +20,9 @@ public:
 	virtual void Begin ( IStream * stream, DCScreenCapturer * capturer );
 	virtual void End ();
 
+public:
+	void SetGenerateSize ( const SIZE* size );
+
 private:
 	IStream * stream;
 	DCScreenCapturer * capturer;
@@ -27,6 +31,7 @@ private:
 	bool threadRunning;
 
 	unsigned frameTick;
+	const SIZE* resize;
 
 	Concurrency::concurrent_queue<WICVG_CONTAINER> capturedQueue;
 };
@@ -40,11 +45,17 @@ DARAMCAM_EXPORTS DCVideoGenerator * DCCreateWICVideoGenerator ( unsigned frameTi
 	return new DCWICVideoGenerator ( frameTick );
 }
 
+DARAMCAM_EXPORTS void DCSetSizeToWICVideoGenerator ( DCVideoGenerator * generator, const SIZE * size )
+{
+	dynamic_cast< DCWICVideoGenerator* >( generator )->SetGenerateSize ( size );
+}
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 DCWICVideoGenerator::DCWICVideoGenerator ( unsigned _frameTick )
+	: resize ( nullptr )
 {
 	CoCreateInstance ( CLSID_WICImagingFactory, NULL, CLSCTX_INPROC_SERVER, IID_IWICImagingFactory, ( LPVOID* ) &g_piFactory );
 
@@ -175,7 +186,23 @@ DWORD WINAPI WICVG_Capturer ( LPVOID vg )
 
 			WICVG_CONTAINER container;
 			container.deltaTime = ( currentTick - lastTick ) / 10;
-			container.bitmapSource = bitmap->ToWICBitmap ( false );
+			//container.bitmapSource = bitmap->ToWICBitmap ();
+			auto wicBitmap = bitmap->ToWICBitmap ();
+			IWICBitmapSource * wicBitmapSource;
+			if ( videoGen->resize != nullptr )
+			{
+				IWICBitmapScaler * wicBitmapScaler;
+				g_piFactory->CreateBitmapScaler ( &wicBitmapScaler );
+				wicBitmapScaler->Initialize ( wicBitmap, videoGen->resize->cx, videoGen->resize->cy, WICBitmapInterpolationModeFant );
+				wicBitmapSource = wicBitmapScaler;
+				wicBitmap->Release ();
+			}
+			else
+			{
+				wicBitmapSource = wicBitmap;
+				//wicBitmapSource->AddRef ();
+			}
+			container.bitmapSource = wicBitmapSource;
 
 			videoGen->capturedQueue.push ( container );
 
@@ -203,4 +230,9 @@ void DCWICVideoGenerator::End ()
 	threadRunning = false;
 	//WaitForSingleObject ( threadHandle, INFINITE );
 	WaitForMultipleObjects ( 2, threadHandles, true, INFINITE );
+}
+
+void DCWICVideoGenerator::SetGenerateSize ( const SIZE * size )
+{
+	resize = size;
 }

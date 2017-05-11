@@ -1,6 +1,7 @@
 #include "DaramCam.h"
 
 #include <dxgi.h>
+#include <dxgi1_2.h>
 
 #include "External Libraries\DXGIManager\DXGIManager.h"
 

@@ -27,31 +27,12 @@ unsigned DCBitmap::GetByteArraySize ()
 	return colorDepth == 3 ? ( ( ( stride + 3 ) / 4 ) * 4 ) * height : width * height * 4;
 }
 
-IWICBitmap * DCBitmap::ToWICBitmap ( bool useShared )
+IWICBitmap * DCBitmap::ToWICBitmap ()
 {
 	IWICBitmap * bitmap;
-	if ( useShared )
-	{
-		g_piFactory->CreateBitmapFromMemory ( width, height, colorDepth == 3 ? GUID_WICPixelFormat24bppBGR : GUID_WICPixelFormat32bppBGRA,
-			stride, GetByteArraySize (), GetByteArray (), &bitmap );
-	}
-	else
-	{
-		g_piFactory->CreateBitmap ( width, height, colorDepth == 3 ? GUID_WICPixelFormat24bppBGR : GUID_WICPixelFormat32bppBGRA, WICBitmapCacheOnDemand, &bitmap );
-
-		unsigned arrLen = GetByteArraySize ();
-		WICRect wicRect = { 0, 0, ( int ) width, ( int ) height };
-		IWICBitmapLock * bitmapLock;
-		bitmap->Lock ( &wicRect, WICBitmapLockWrite, &bitmapLock );
-
-		WICInProcPointer ptr;
-		bitmapLock->GetDataPointer ( &arrLen, &ptr );
-		unsigned wicStride = 0;
-		bitmapLock->GetStride ( &wicStride );
-		memcpy ( ptr, byteArray, stride * height );
-		bitmapLock->Release ();
-	}
-
+	if ( FAILED ( g_piFactory->CreateBitmapFromMemory ( width, height, colorDepth == 3 ? GUID_WICPixelFormat24bppBGR : GUID_WICPixelFormat32bppBGRA,
+		stride, GetByteArraySize (), GetByteArray (), &bitmap ) ) )
+		return nullptr;
 	return bitmap;
 }
 

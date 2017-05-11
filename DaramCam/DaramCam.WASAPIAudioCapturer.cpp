@@ -1,5 +1,7 @@
 #include "DaramCam.h"
 
+#include <Audioclient.h>
+
 class DCWASAPIAudioCapturer : public DCAudioCapturer
 {
 public:

@@ -10,8 +10,12 @@ public:
 public:
 	virtual void Generate ( IStream * stream, DCBitmap * bitmap );
 
+public:
+	void SetGenerateSize ( const SIZE* size );
+
 private:
 	GUID containerGUID;
+	const SIZE* resize;
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -23,11 +27,17 @@ DARAMCAM_EXPORTS DCImageGenerator * DCCreateWICImageGenerator ( DCWICImageType i
 	return new DCWICImageGenerator ( imageType );
 }
 
+DARAMCAM_EXPORTS void DCSetSizeToWICImageGenerator ( DCImageGenerator * generator, const SIZE * size )
+{
+	dynamic_cast< DCWICImageGenerator* >( generator )->SetGenerateSize ( size );
+}
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 DCWICImageGenerator::DCWICImageGenerator ( DCWICImageType imageType )
+	: resize ( nullptr )
 {
 	switch ( imageType )
 	{
@@ -56,26 +66,41 @@ void DCWICImageGenerator::Generate ( IStream * stream, DCBitmap * bitmap )
 	piEncoder->CreateNewFrame ( &piBitmapFrame, &pPropertybag );
 	piBitmapFrame->Initialize ( pPropertybag );
 
-	piBitmapFrame->SetSize ( bitmap->GetWidth (), bitmap->GetHeight () );
+	auto wicBitmap = bitmap->ToWICBitmap ();
+	IWICBitmapSource * wicBitmapSource;
+	if ( resize != nullptr )
+	{
+		IWICBitmapScaler * wicBitmapScaler;
+		g_piFactory->CreateBitmapScaler ( &wicBitmapScaler );
+		wicBitmapScaler->Initialize ( wicBitmap, resize->cx, resize->cy, WICBitmapInterpolationModeFant );
+		wicBitmapSource = wicBitmapScaler;
+		wicBitmap->Release ();
+	}
+	else
+		wicBitmapSource = wicBitmap;
+
+	UINT width, height;
+	wicBitmapSource->GetSize ( &width, &height );
+
+	piBitmapFrame->SetSize ( width, height );
 
 	WICPixelFormatGUID formatGUID = bitmap->GetColorDepth () == 3 ? GUID_WICPixelFormat24bppBGR : GUID_WICPixelFormat32bppBGRA;
 	piBitmapFrame->SetPixelFormat ( &formatGUID );
 
-	WICRect wicRect = { 0, 0, ( int ) bitmap->GetWidth (), ( int ) bitmap->GetHeight () };
-	auto wicBitmap = bitmap->ToWICBitmap ();
-	piBitmapFrame->WriteSource ( wicBitmap, &wicRect );
-	wicBitmap->Release ();
+	WICRect wicRect = { 0, 0, ( int ) width, ( int ) height };
+	piBitmapFrame->WriteSource ( wicBitmapSource, &wicRect );
+	wicBitmapSource->Release ();
 
 	piBitmapFrame->Commit ();
-
-	if ( piBitmapFrame )
-		piBitmapFrame->Release ();
+	piBitmapFrame->Release ();
 
 	piEncoder->Commit ();
+	piEncoder->Release ();
 
-	if ( piEncoder )
-		piEncoder->Release ();
+	piStream->Release ();
+}
 
-	if ( piStream )
-		piStream->Release ();
+void DCWICImageGenerator::SetGenerateSize ( const SIZE * size )
+{
+	resize = size;
 }

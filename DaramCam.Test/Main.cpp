@@ -48,6 +48,8 @@ int main ( void )
 	screenCapturer->Capture ();
 
 	DCImageGenerator * imgGen = DCCreateWICImageGenerator ( DCWICImageType_PNG );
+	SIZE size = { 640, 360 };
+	DCSetSizeToWICImageGenerator ( imgGen, &size );
 	imgGen->Generate ( stream, screenCapturer->GetCapturedBitmap () );
 
 	stream->Release ();
@@ -57,6 +59,7 @@ int main ( void )
 	SHCreateStreamOnFileEx ( TEXT ( "Z:\\Test.gif" ), STGM_READWRITE | STGM_CREATE, 0, false, 0, &stream );
 
 	DCVideoGenerator * vidGen = DCCreateWICVideoGenerator ( WICVG_FRAMETICK_24FPS );
+	DCSetSizeToWICVideoGenerator ( vidGen, &size );
 	vidGen->Begin ( stream, screenCapturer );
 	Sleep ( 10000 );
 	vidGen->End ();
