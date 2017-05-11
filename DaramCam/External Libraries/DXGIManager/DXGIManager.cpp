@@ -1,7 +1,6 @@
 ﻿#include "DXGIManager.h"
-#include <gdiplus.h>
 
-#pragma comment ( lib, "GdiPlus.lib" )
+#include <gdiplus.h>
 using namespace Gdiplus;
 #pragma comment ( lib, "d3d11.lib" )
 
@@ -183,7 +182,6 @@ DXGIManager::DXGIManager()
 
 DXGIManager::~DXGIManager()
 {
-    GdiplusShutdown(m_gdiplusToken);
 
 	if(m_pBuf)
 	{
@@ -285,9 +283,6 @@ HRESULT DXGIManager::Init()
 	if(m_bInitialized)
 		return S_OK;
 
-	GdiplusStartupInput gdiplusStartupInput;
-	GdiplusStartup(&m_gdiplusToken, &gdiplusStartupInput, NULL);
-
 	HRESULT hr = CreateDXGIFactory1(__uuidof(IDXGIFactory1), (void**)(&m_spDXGIFactory1) );
 	if( FAILED(hr) )
 	{
@@ -359,12 +354,6 @@ HRESULT DXGIManager::Init()
 					spDXGIOutput1,
 					spDXGIOutputDuplication));
 		}
-	}
-
-	hr = m_spWICFactory.CoCreateInstance(CLSID_WICImagingFactory);
-	if( FAILED(hr) )
-	{
-		return hr;
 	}
 
 	m_bInitialized = true;

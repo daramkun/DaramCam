@@ -41,7 +41,7 @@ int main ( void )
 		hWnd = DCGetActiveWindowFromProcess ( process );*/
 
 	///// Image Capture
-	/*SHCreateStreamOnFileEx ( TEXT ( "Z:\\Test.png" ), STGM_READWRITE | STGM_CREATE, 0, false, 0, &stream );
+	/**/SHCreateStreamOnFileEx ( TEXT ( "Z:\\Test.png" ), STGM_READWRITE | STGM_CREATE, 0, false, 0, &stream );
 
 	//DCScreenCapturer * screenCapturer = new DCCreateGDIScreenCapturer ( hWnd );
 	//DCScreenCapturer * screenCapturer = DCCreateGDIScreenCapturer ( 0 );
@@ -71,7 +71,7 @@ int main ( void )
 	delete screenCapturer;/**/
 
 	///// Audio Capture
-	/**/
+	/*
 	std::vector<CComPtr<IMMDevice>> devices;
 	DCGetMultimediaDevices ( devices );
 

@@ -10,6 +10,11 @@
 #pragma comment ( lib, "Kernel32.lib" )
 #pragma comment ( lib, "Psapi.lib" )
 
+#include <gdiplus.h>
+using namespace Gdiplus;
+#pragma comment ( lib, "GdiPlus.lib" )
+
+ULONG_PTR g_gdiplusToken;
 IWICImagingFactory * g_piFactory;
 
 void DCStartup ()
@@ -20,6 +25,9 @@ void DCStartup ()
 
 	CoInitializeEx ( NULL, COINIT_APARTMENTTHREADED );
 
+	GdiplusStartupInput gdiplusStartupInput;
+	GdiplusStartup ( &g_gdiplusToken, &gdiplusStartupInput, NULL );
+
 	CoCreateInstance ( CLSID_WICImagingFactory, NULL, CLSCTX_INPROC_SERVER, IID_IWICImagingFactory, ( LPVOID* ) &g_piFactory );
 }
 
@@ -27,6 +35,8 @@ void DCShutdown ()
 {
 	if ( g_piFactory )
 		g_piFactory->Release ();
+
+	GdiplusShutdown ( g_gdiplusToken );
 
 	CoUninitialize ();
 }

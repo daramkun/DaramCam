@@ -5,7 +5,6 @@
 #include <DXGITYPE.h>
 #include <DXGI1_2.h>
 #include <d3d11.h>
-#include <Wincodec.h>
 #include <vector>
 #include <memory>
 
@@ -86,7 +85,5 @@ private:
 	RECT m_rcCalcedRect;
 	BYTE* m_pBuf;
 
-	CComPtr<IWICImagingFactory> m_spWICFactory;
-	ULONG_PTR m_gdiplusToken;
 	DXGIPointerInfo* m_pDXGIPointer;
 };

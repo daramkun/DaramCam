@@ -51,8 +51,6 @@ DCDXGIScreenCapturer::DCDXGIScreenCapturer ( DCDXGIScreenCapturerRange range )
 	RECT outputRect;
 	dxgiManager->GetOutputRect ( outputRect );
 	capturedBitmap.Resize ( outputRect.right - outputRect.left, outputRect.bottom - outputRect.top, 4 );
-
-	Capture ();
 }
 
 DCDXGIScreenCapturer::~DCDXGIScreenCapturer ()
