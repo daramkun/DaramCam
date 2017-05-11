@@ -5,6 +5,7 @@
 #include <wincodec.h>
 #include <Mmdeviceapi.h>
 #include <shlwapi.h>
+#include <atlbase.h>
 
 #include <vector>
 
@@ -30,8 +31,7 @@ DARAMCAM_EXPORTS void DCGetProcessName ( DWORD pId, char * nameBuffer, unsigned 
 DARAMCAM_EXPORTS HWND DCGetActiveWindowFromProcess ( DWORD pId );
 DARAMCAM_EXPORTS BSTR DCGetDeviceName ( IMMDevice * pDevice );
 DARAMCAM_EXPORTS double DCGetCurrentTime ();
-DARAMCAM_EXPORTS void DCGetMultimediaDevices ( std::vector<IMMDevice*> & devices );
-DARAMCAM_EXPORTS void DCReleaseMultimediaDevices ( std::vector<IMMDevice*> & devices );
+DARAMCAM_EXPORTS void DCGetMultimediaDevices ( std::vector<CComPtr<IMMDevice>> & devices );
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////

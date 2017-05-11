@@ -36,7 +36,6 @@ DCWaveAudioGenerator::DCWaveAudioGenerator ()
 {
 }
 
-
 DWORD WINAPI WAVAG_Progress ( LPVOID vg )
 {
 	DCWaveAudioGenerator * audioGen = ( DCWaveAudioGenerator* ) vg;

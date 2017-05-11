@@ -34,7 +34,7 @@ private:
 
 	WAVEFORMATEX *pwfx;
 
-	char * byteArray;
+	BYTE * byteArray;
 	unsigned byteArrayLength;
 
 	UINT32 bufferFrameCount;
@@ -127,7 +127,7 @@ DCWASAPIAudioCapturer::DCWASAPIAudioCapturer ( IMMDevice * pDevice )
 	pAudioClient->GetService ( IID_ISimpleAudioVolume, ( void** ) &pAudioVolume );
 	originalVolume = GetVolume ();
 
-	byteArray = new char [ byteArrayLength = 46000 * 128 ];
+	byteArray = new BYTE [ byteArrayLength = 46000 * 128 ];
 
 	hWakeUp = CreateWaitableTimer ( NULL, FALSE, NULL );
 

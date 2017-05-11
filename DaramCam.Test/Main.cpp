@@ -40,7 +40,8 @@ int main ( void )
 	else
 		hWnd = DCGetActiveWindowFromProcess ( process );*/
 
-	/**/SHCreateStreamOnFileEx ( TEXT ( "Z:\\Test.png" ), STGM_READWRITE | STGM_CREATE, 0, false, 0, &stream );
+	///// Image Capture
+	/*SHCreateStreamOnFileEx ( TEXT ( "Z:\\Test.png" ), STGM_READWRITE | STGM_CREATE, 0, false, 0, &stream );
 
 	//DCScreenCapturer * screenCapturer = new DCCreateGDIScreenCapturer ( hWnd );
 	//DCScreenCapturer * screenCapturer = DCCreateGDIScreenCapturer ( 0 );
@@ -69,9 +70,9 @@ int main ( void )
 
 	delete screenCapturer;/**/
 
-	/*
 	///// Audio Capture
-	std::vector<IMMDevice*> devices;
+	/**/
+	std::vector<CComPtr<IMMDevice>> devices;
 	DCGetMultimediaDevices ( devices );
 
 	for ( int i = 0; i < devices.size (); ++i )
@@ -84,8 +85,7 @@ int main ( void )
 	scanf ( "%d", &selected );
 
 	DCAudioCapturer * audioCapturer = DCCreateWASAPIAudioCapturer ( devices [ selected ] );
-	DCReleaseMultimediaDevices ( devices );
-
+	
 	SHCreateStreamOnFileEx ( TEXT ( "Z:\\Test.wav" ), STGM_READWRITE | STGM_CREATE, 0, false, 0, &stream );
 
 	DCAudioGenerator * audGen = DCCreateWaveAudioGenerator ();
@@ -93,6 +93,8 @@ int main ( void )
 	audGen->Begin ( stream, audioCapturer );
 	Sleep ( 10000 );
 	audGen->End ();
+
+	delete audGen;
 
 	delete audioCapturer;/**/
 

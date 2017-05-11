@@ -111,7 +111,7 @@ DARAMCAM_EXPORTS double DCGetCurrentTime ()
 	return ( getTime.QuadPart / ( double ) performanceFrequency.QuadPart );
 }
 
-DARAMCAM_EXPORTS void DCGetMultimediaDevices ( std::vector<IMMDevice*>& devices )
+DARAMCAM_EXPORTS void DCGetMultimediaDevices ( std::vector<CComPtr<IMMDevice>>& devices )
 {
 	IMMDeviceEnumerator *pEnumerator;
 	IMMDeviceCollection * pCollection;
@@ -123,18 +123,12 @@ DARAMCAM_EXPORTS void DCGetMultimediaDevices ( std::vector<IMMDevice*>& devices 
 	pCollection->GetCount ( &collectionCount );
 	for ( UINT i = 0; i < collectionCount; ++i )
 	{
-		IMMDevice * pDevice;
+		IMMDevice* pDevice;
 		pCollection->Item ( i, &pDevice );
+		pDevice->AddRef ();
 		devices.push_back ( pDevice );
 	}
 
 	pCollection->Release ();
 	pEnumerator->Release ();
-}
-
-DARAMCAM_EXPORTS void DCReleaseMultimediaDevices ( std::vector<IMMDevice*>& devices )
-{
-	for ( auto i = devices.begin (); i != devices.end (); ++i )
-		( *i )->Release ();
-	devices.clear ();
 }
