@@ -17,7 +17,7 @@ public:
 	virtual DCBitmap * GetCapturedBitmap ();
 
 private:
-	void* dxgiManager;
+	DXGIManager* dxgiManager;
 	DCBitmap capturedBitmap;
 };
 
@@ -37,8 +37,7 @@ DARAMCAM_EXPORTS DCScreenCapturer * DCCreateDXGIScreenCapturer ( DCDXGIScreenCap
 DCDXGIScreenCapturer::DCDXGIScreenCapturer ( DCDXGIScreenCapturerRange range )
 	: capturedBitmap ( 0, 0 )
 {
-	DXGIManager * dxgiManager = new DXGIManager;
-	this->dxgiManager = dxgiManager;
+	dxgiManager = new DXGIManager;
 
 	CaptureSource captureSource = CSDesktop;
 	switch ( range )
@@ -62,7 +61,6 @@ DCDXGIScreenCapturer::~DCDXGIScreenCapturer ()
 
 void DCDXGIScreenCapturer::Capture ()
 {
-	DXGIManager * dxgiManager = static_cast< DXGIManager* > ( this->dxgiManager );
 	RECT outputRect;
 	dxgiManager->GetOutputRect ( outputRect );
 	while ( FAILED ( dxgiManager->GetOutputBits ( capturedBitmap.GetByteArray () ) ) )

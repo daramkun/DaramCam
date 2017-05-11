@@ -1,4 +1,4 @@
-#include "DaramCam.h"
+﻿#include "DaramCam.h"
 
 #pragma comment ( lib, "windowscodecs.lib" )
 #pragma comment ( lib, "shlwapi.lib" )
@@ -10,13 +10,14 @@
 #pragma comment ( lib, "Kernel32.lib" )
 #pragma comment ( lib, "Psapi.lib" )
 
-//#include <d3d11.h>
-#pragma comment ( lib, "d3d11.lib" )
-
 IWICImagingFactory * g_piFactory;
 
 void DCStartup ()
 {
+#if _DEBUG
+	_CrtSetDbgFlag ( _CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF );
+#endif
+
 	CoInitializeEx ( NULL, COINIT_APARTMENTTHREADED );
 
 	CoCreateInstance ( CLSID_WICImagingFactory, NULL, CLSCTX_INPROC_SERVER, IID_IWICImagingFactory, ( LPVOID* ) &g_piFactory );

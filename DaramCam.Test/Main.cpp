@@ -56,7 +56,7 @@ int main ( void )
 
 	SHCreateStreamOnFileEx ( TEXT ( "Z:\\Test.gif" ), STGM_READWRITE | STGM_CREATE, 0, false, 0, &stream );
 
-	DCVideoGenerator * vidGen = DCCreateWICVideoGenerator ( WICVG_FRAMETICK_30FPS );
+	DCVideoGenerator * vidGen = DCCreateWICVideoGenerator ( WICVG_FRAMETICK_24FPS );
 	vidGen->Begin ( stream, screenCapturer );
 	Sleep ( 10000 );
 	vidGen->End ();

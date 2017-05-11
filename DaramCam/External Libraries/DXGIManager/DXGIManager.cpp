@@ -3,6 +3,7 @@
 
 #pragma comment ( lib, "GdiPlus.lib" )
 using namespace Gdiplus;
+#pragma comment ( lib, "d3d11.lib" )
 
 #pragma intrinsic(memcpy) 
 
@@ -172,12 +173,12 @@ bool DXGIOutputDuplication::IsPrimary()
 }
 
 DXGIManager::DXGIManager()
+	: m_pBuf ( NULL ),
+	  m_pDXGIPointer ( NULL ),
+	  m_bInitialized ( false ),
+	  m_CaptureSource ( CSUndefined )
 {
-	m_CaptureSource = CSUndefined;
 	SetRect(&m_rcCurrentOutput, 0, 0, 0, 0);
-	m_pBuf = NULL;
-	m_pDXGIPointer = NULL;
-	m_bInitialized = false;
 }
 
 DXGIManager::~DXGIManager()
@@ -297,8 +298,8 @@ HRESULT DXGIManager::Init()
 	vector<CComPtr<IDXGIAdapter1>> vAdapters;
 
 	CComPtr<IDXGIAdapter1> spAdapter; 
-	for(int i=0; m_spDXGIFactory1->EnumAdapters1(i, &spAdapter) != DXGI_ERROR_NOT_FOUND; i++)
-	{ 
+	for(int i=0; m_spDXGIFactory1->EnumAdapters1(i, &spAdapter) != DXGI_ERROR_NOT_FOUND; ++i)
+	{
 		vAdapters.push_back(spAdapter);
 		spAdapter.Release();
 	}
@@ -306,12 +307,12 @@ HRESULT DXGIManager::Init()
 	// Iterating over all adapters to get all m_outputDupls
 	for(vector<CComPtr<IDXGIAdapter1>>::iterator AdapterIter = vAdapters.begin();
 		AdapterIter != vAdapters.end();
-		AdapterIter++)
+		++AdapterIter)
 	{
 		vector<CComPtr<IDXGIOutput>> vOutputs;
 
 		CComPtr<IDXGIOutput> spDXGIOutput;
-		for(int i=0; (*AdapterIter)->EnumOutputs(i, &spDXGIOutput) != DXGI_ERROR_NOT_FOUND; i++)
+		for(int i=0; (*AdapterIter)->EnumOutputs(i, &spDXGIOutput) != DXGI_ERROR_NOT_FOUND; ++i)
 		{ 
 			DXGI_OUTPUT_DESC outputDesc;
 			spDXGIOutput->GetDesc(&outputDesc);
@@ -330,7 +331,7 @@ HRESULT DXGIManager::Init()
 		// Creating device for each adapter that has the output
 		CComPtr<ID3D11Device> spD3D11Device;
 		CComPtr<ID3D11DeviceContext> spD3D11DeviceContext;
-		D3D_FEATURE_LEVEL fl = D3D_FEATURE_LEVEL_9_1;
+		D3D_FEATURE_LEVEL fl = D3D_FEATURE_LEVEL_11_1;
 		hr = D3D11CreateDevice((*AdapterIter), D3D_DRIVER_TYPE_UNKNOWN, NULL, 0, NULL, 0, D3D11_SDK_VERSION, &spD3D11Device, &fl, &spD3D11DeviceContext);
 		if( FAILED(hr) )
 		{
@@ -339,7 +340,7 @@ HRESULT DXGIManager::Init()
 
 		for(std::vector<CComPtr<IDXGIOutput>>::iterator OutputIter = vOutputs.begin(); 
 			OutputIter != vOutputs.end(); 
-			OutputIter++)
+			++OutputIter)
 		{
 			CComQIPtr<IDXGIOutput1> spDXGIOutput1 = *OutputIter;
 			CComQIPtr<IDXGIDevice1> spDXGIDevice = spD3D11Device;
@@ -392,7 +393,7 @@ HRESULT DXGIManager::GetOutputBits(BYTE* pBits )
 	BYTE* pBuf = pBits;
 
 	vector<DXGIOutputDuplication*> & vOutputs = GetOutputDuplication();
-	for(auto iter = vOutputs.begin(); iter != vOutputs.end(); iter++)
+	for(auto iter = vOutputs.begin(); iter != vOutputs.end(); ++iter)
 	{
 		DXGIOutputDuplication* out = *iter;
 	
@@ -540,11 +541,11 @@ void DXGIManager::DrawMousePointer(BYTE* pDesktopBits, RECT rcDesktop, RECT rcDe
 				{
 					for(int j = rcPointer.top, jDP = rcDesktopPointer.top;
 						j<rcPointer.bottom && jDP<rcDesktopPointer.bottom; 
-						j++, jDP++)
+						++j, ++jDP)
 					{
 						for(int i = rcPointer.left, iDP = rcDesktopPointer.left;
 							i<rcPointer.right && iDP<rcDesktopPointer.right; 
-							i++, iDP++)
+							++i, ++iDP)
 						{
 							BYTE Mask = 0x80 >> (i % 8);
 							BYTE AndMask = pShapeBuffer[i/8 + (m_pDXGIPointer->GetShapeInfo().Pitch)*j] & Mask;
@@ -562,11 +563,11 @@ void DXGIManager::DrawMousePointer(BYTE* pDesktopBits, RECT rcDesktop, RECT rcDe
 					UINT* pShapeBuffer32 = (UINT*)pShapeBuffer;
 					for(int j = rcPointer.top, jDP = rcDesktopPointer.top;
 						j<rcPointer.bottom && jDP<rcDesktopPointer.bottom; 
-						j++, jDP++)
+						++j, ++jDP)
 					{
 						for(int i = rcPointer.left, iDP = rcDesktopPointer.left;
 							i<rcPointer.right && iDP<rcDesktopPointer.right; 
-							i++, iDP++)
+							++i, ++iDP)
 						{
 							// Set up mask
 							UINT MaskVal = 0xFF000000 & pShapeBuffer32[i + (m_pDXGIPointer->GetShapeInfo().Pitch/4)*j];
@@ -596,7 +597,7 @@ vector<DXGIOutputDuplication*> & DXGIManager::GetOutputDuplication()
 BOOL CALLBACK MonitorEnumProc(HMONITOR hMonitor, HDC hdcMonitor, LPRECT lprcMonitor, LPARAM dwData)
 {
     int *Count = (int*)dwData;
-    (*Count)++;
+    ++(*Count);
     return TRUE;
 }
 
