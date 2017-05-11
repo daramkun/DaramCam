@@ -10,3 +10,7 @@ Screen Capturing and Recording Library for Windows
 * Windows Imaging Components Image Generator (BMP, PNG, JPEG, TIFF)
 * Windows Imaging Components Video Generator (GIF)
 * Wave Audio Generator (WAV)
+
+## Licenses
+* DaramCam Core - MIT License
+* DXGIManager - MIT License, Not my Original source (https://github.com/pgurenko/DXGICaptureSample)
