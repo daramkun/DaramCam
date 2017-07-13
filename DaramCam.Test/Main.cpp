@@ -94,6 +94,7 @@ int main ( void )
 	/**/
 	DCAudioCapturer * audioCapturer = DCCreateWASAPILoopbackAudioCapturer ();
 	
+	//SHCreateStreamOnFileEx ( TEXT ( "Z:\\Test.adts" ), STGM_READWRITE | STGM_CREATE, 0, false, 0, &stream );
 	SHCreateStreamOnFileEx ( TEXT ( "Z:\\Test.m4a" ), STGM_READWRITE | STGM_CREATE, 0, false, 0, &stream );
 
 	//DCAudioGenerator * audGen = DCCreateWaveAudioGenerator ();

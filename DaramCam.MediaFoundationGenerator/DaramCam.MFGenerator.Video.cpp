@@ -80,6 +80,7 @@ DWORD WINAPI MFVG_Progress ( LPVOID vg )
 	videoGen->sinkWriter->BeginWriting ();
 
 	MFTIME totalTime = 0;
+	unsigned flushDelta = 0;
 	while ( videoGen->threadRunning || !videoGen->capturedQueue.empty () )
 	{
 		if ( videoGen->capturedQueue.empty () )
@@ -131,6 +132,12 @@ DWORD WINAPI MFVG_Progress ( LPVOID vg )
 		sample->Release ();
 
 		delete container.bitmapSource;
+
+		if ( totalTime / 10000000ULL != flushDelta )
+		{
+			videoGen->sinkWriter->Flush ( videoGen->streamIndex );
+			flushDelta = totalTime / 10000000ULL;
+		}
 
 		Sleep ( 1 );
 	}
@@ -188,13 +195,20 @@ void DCMFVideoGenerator::Begin ( IStream * _stream, DCScreenCapturer * _capturer
 	MFSetAttributeRatio ( videoMediaType, MF_MT_FRAME_RATE, fps, 1 );
 	MFSetAttributeRatio ( videoMediaType, MF_MT_PIXEL_ASPECT_RATIO, 1, 1 );
 
-	if ( FAILED ( MFCreateMPEG4MediaSink ( byteStream, videoMediaType, nullptr, &mediaSink ) ) )
+	if ( FAILED ( MFCreateFMPEG4MediaSink ( byteStream, videoMediaType, nullptr, &mediaSink ) ) )
 		return;
 
 	videoMediaType->Release ();
 
-	if ( FAILED ( MFCreateSinkWriterFromMediaSink ( mediaSink, nullptr, &sinkWriter ) ) )
+	IMFAttributes * attr;
+	MFCreateAttributes ( &attr, 1 );
+	attr->SetUINT32 ( MF_READWRITE_ENABLE_HARDWARE_TRANSFORMS, 1 );
+	attr->SetUINT32 ( MF_SINK_WRITER_DISABLE_THROTTLING, 1 );
+
+	if ( FAILED ( MFCreateSinkWriterFromMediaSink ( mediaSink, attr, &sinkWriter ) ) )
 		return;
+
+	attr->Release ();
 
 	IMFMediaType * inputMediaType;
 	if ( FAILED ( MFCreateMediaType ( &inputMediaType ) ) )

@@ -71,8 +71,8 @@ DWORD WINAPI MFAG_Progress ( LPVOID vg )
 
 	HRESULT hr;
 
-	unsigned total = 0;
 	MFTIME totalDuration = 0;
+	unsigned flushDelta = 0;
 	while ( audioGen->threadRunning )
 	{
 		unsigned bufferLength;
@@ -109,10 +109,15 @@ DWORD WINAPI MFAG_Progress ( LPVOID vg )
 
 		sample->Release ();
 
-		total += bufferLength;
+		if ( totalDuration / 10000000ULL != flushDelta )
+		{
+			audioGen->sinkWriter->Flush ( audioGen->streamIndex );
+			flushDelta = totalDuration / 10000000ULL;
+		}
+
+		Sleep ( 1 );
 	}
 
-	//audioGen->sinkWriter->Flush ( audioGen->streamIndex );
 	audioGen->sinkWriter->Finalize ();
 	audioGen->capturer->End ();
 
@@ -141,13 +146,21 @@ void DCMFAudioGenerator::Begin ( IStream * _stream, DCAudioCapturer * _capturer 
 	audioMediaType->SetUINT32 ( MF_MT_AUDIO_AVG_BYTES_PER_SECOND, 24000 );
 	audioMediaType->SetUINT32 ( MF_MT_AAC_PAYLOAD_TYPE, 0 );
 
-	if ( FAILED ( hr = MFCreateMPEG4MediaSink ( byteStream, nullptr, audioMediaType, &mediaSink ) ) )
+	if ( FAILED ( hr = MFCreateFMPEG4MediaSink ( byteStream, nullptr, audioMediaType, &mediaSink ) ) )
+	//if ( FAILED ( hr = MFCreateADTSMediaSink ( byteStream, audioMediaType, &mediaSink ) ) )
 		return;
 
 	audioMediaType->Release ();
 
-	if ( FAILED ( hr = MFCreateSinkWriterFromMediaSink ( mediaSink, nullptr, &sinkWriter ) ) )
+	IMFAttributes * attr;
+	MFCreateAttributes ( &attr, 1 );
+	attr->SetUINT32 ( MF_READWRITE_ENABLE_HARDWARE_TRANSFORMS, 1 );
+	attr->SetUINT32 ( MF_SINK_WRITER_DISABLE_THROTTLING, 1 );
+
+	if ( FAILED ( hr = MFCreateSinkWriterFromMediaSink ( mediaSink, attr, &sinkWriter ) ) )
 		return;
+
+	attr->Release ();
 
 	IMFMediaType * inputMediaType;
 	if ( FAILED ( hr = MFCreateMediaType ( &inputMediaType ) ) )

@@ -270,14 +270,21 @@ void DCMFAudioVideoGenerator::Begin ( IStream * _stream, DCScreenCapturer * _vid
 	audioMediaType->SetUINT32 ( MF_MT_AUDIO_AVG_BYTES_PER_SECOND, 24000 );
 	audioMediaType->SetUINT32 ( MF_MT_AAC_PAYLOAD_TYPE, 0 );
 
-	if ( FAILED ( MFCreateMPEG4MediaSink ( byteStream, videoMediaType, audioMediaType, &mediaSink ) ) )
+	if ( FAILED ( MFCreateFMPEG4MediaSink ( byteStream, videoMediaType, audioMediaType, &mediaSink ) ) )
 		return;
 
 	audioMediaType->Release ();
 	videoMediaType->Release ();
 
-	if ( FAILED ( MFCreateSinkWriterFromMediaSink ( mediaSink, nullptr, &sinkWriter ) ) )
+	IMFAttributes * attr;
+	MFCreateAttributes ( &attr, 1 );
+	attr->SetUINT32 ( MF_READWRITE_ENABLE_HARDWARE_TRANSFORMS, 1 );
+	attr->SetUINT32 ( MF_SINK_WRITER_DISABLE_THROTTLING, 1 );
+
+	if ( FAILED ( MFCreateSinkWriterFromMediaSink ( mediaSink, attr, &sinkWriter ) ) )
 		return;
+
+	attr->Release ();
 
 	IMFMediaType * inputVideoMediaType;
 	if ( FAILED ( MFCreateMediaType ( &inputVideoMediaType ) ) )
