@@ -139,6 +139,7 @@ void DCMFAudioGenerator::Begin ( IStream * _stream, DCAudioCapturer * _capturer 
 	audioMediaType->SetUINT32 ( MF_MT_AUDIO_SAMPLES_PER_SECOND, _capturer->GetSamplerate () );
 	audioMediaType->SetUINT32 ( MF_MT_AUDIO_NUM_CHANNELS, _capturer->GetChannels () );
 	audioMediaType->SetUINT32 ( MF_MT_AUDIO_AVG_BYTES_PER_SECOND, 24000 );
+	audioMediaType->SetUINT32 ( MF_MT_AAC_PAYLOAD_TYPE, 0 );
 
 	if ( FAILED ( hr = MFCreateMPEG4MediaSink ( byteStream, nullptr, audioMediaType, &mediaSink ) ) )
 		return;

@@ -156,6 +156,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="DaramCam.MediaFoundationGenerator.h" />
+    <ClInclude Include="DaramCam.MediaFoundationGenerator.Internal.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="DaramCam.MFGenerator.Audio.cpp" />

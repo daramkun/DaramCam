@@ -15,12 +15,10 @@ enum {
 };
 
 enum {
-	DCMFVF_NONE,
 	DCMFVF_H264,
 };
 
 enum {
-	DCMFAF_NONE,
 	DCMFAF_AAC,
 };
 

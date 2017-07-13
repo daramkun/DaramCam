@@ -1,4 +1,5 @@
 ﻿#include "DaramCam.MediaFoundationGenerator.h"
+#include "DaramCam.MediaFoundationGenerator.Internal.h"
 
 #include <mfapi.h>
 #include <mfidl.h>
@@ -47,17 +48,6 @@ private:
 
 	Concurrency::concurrent_queue<MFVG_CONTAINER> capturedQueue;
 };
-
-unsigned __convertFrameTick ( unsigned frameTick )
-{
-	switch ( frameTick )
-	{
-	case DCMFVF_FRAMETICK_60FPS: return 60;
-	case DCMFVF_FRAMETICK_30FPS: return 30;
-	case DCMFVF_FRAMETICK_24FPS: return 24;
-	default: 0;
-	}
-}
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -191,7 +181,7 @@ void DCMFVideoGenerator::Begin ( IStream * _stream, DCScreenCapturer * _capturer
 		return;
 	videoMediaType->SetGUID ( MF_MT_MAJOR_TYPE, MFMediaType_Video );
 	videoMediaType->SetGUID ( MF_MT_SUBTYPE, MFVideoFormat_H264 );
-	videoMediaType->SetUINT32 ( MF_MT_AVG_BITRATE, 10000000 );
+	videoMediaType->SetUINT32 ( MF_MT_AVG_BITRATE, _capturer->GetCapturedBitmap ()->GetWidth () * _capturer->GetCapturedBitmap ()->GetHeight () * 5 );
 	videoMediaType->SetUINT32 ( MF_MT_MPEG2_PROFILE, eAVEncH264VProfile_High );
 	videoMediaType->SetUINT32 ( MF_MT_INTERLACE_MODE, MFVideoInterlace_Progressive );
 	MFSetAttributeSize ( videoMediaType, MF_MT_FRAME_SIZE, _capturer->GetCapturedBitmap ()->GetWidth (), _capturer->GetCapturedBitmap ()->GetHeight () );
