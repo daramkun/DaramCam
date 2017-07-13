@@ -1,6 +1,8 @@
 #define _CRT_SECURE_NO_WARNINGS
 #include <DaramCam.h>
 #pragma comment ( lib, "DaramCam.lib" )
+#include <DaramCam.MediaFoundationGenerator.h>
+#pragma comment ( lib, "DaramCam.MediaFoundationGenerator.lib" )
 
 #include <stdio.h>
 #include <string.h>
@@ -10,6 +12,7 @@
 int main ( void )
 {
 	DCStartup ();
+	DCMFStartup ();
 
 	IStream * stream;
 
@@ -41,7 +44,8 @@ int main ( void )
 		hWnd = DCGetActiveWindowFromProcess ( process );*/
 
 	///// Image Capture
-	/**/SHCreateStreamOnFileEx ( TEXT ( "Z:\\Test.png" ), STGM_READWRITE | STGM_CREATE, 0, false, 0, &stream );
+	/**/
+	SHCreateStreamOnFileEx ( TEXT ( "Z:\\Test.png" ), STGM_READWRITE | STGM_CREATE, 0, false, 0, &stream );
 
 	//DCScreenCapturer * screenCapturer = new DCCreateGDIScreenCapturer ( hWnd );
 	//DCScreenCapturer * screenCapturer = DCCreateGDIScreenCapturer ( 0 );
@@ -57,10 +61,11 @@ int main ( void )
 
 	delete imgGen;
 
-	SHCreateStreamOnFileEx ( TEXT ( "Z:\\Test.gif" ), STGM_READWRITE | STGM_CREATE, 0, false, 0, &stream );
+	SHCreateStreamOnFileEx ( TEXT ( "Z:\\Test.mp4" ), STGM_READWRITE | STGM_CREATE, 0, false, 0, &stream );
 
-	DCVideoGenerator * vidGen = DCCreateWICVideoGenerator ( WICVG_FRAMETICK_24FPS );
-	DCSetSizeToWICVideoGenerator ( vidGen, &size );
+	//DCVideoGenerator * vidGen = DCCreateWICVideoGenerator ( WICVG_FRAMETICK_24FPS );
+	DCVideoGenerator * vidGen = DCCreateMFVideoGenerator ( DCMFCONTAINER_MP4, DCMFVF_H264, DCMFVF_FRAMETICK_60FPS );
+	//DCSetSizeToWICVideoGenerator ( vidGen, &size );
 	vidGen->Begin ( stream, screenCapturer );
 	Sleep ( 10000 );
 	vidGen->End ();
@@ -68,7 +73,8 @@ int main ( void )
 
 	delete vidGen;
 
-	delete screenCapturer;/**/
+	delete screenCapturer;
+	/**/
 
 	///// Audio Capture
 	/*
@@ -85,10 +91,12 @@ int main ( void )
 	scanf ( "%d", &selected );
 
 	DCAudioCapturer * audioCapturer = DCCreateWASAPIAudioCapturer ( devices [ selected ] );
+	DCAudioCapturer * audioCapturer = DCCreateWASAPILoopbackAudioCapturer ();
 	
-	SHCreateStreamOnFileEx ( TEXT ( "Z:\\Test.wav" ), STGM_READWRITE | STGM_CREATE, 0, false, 0, &stream );
+	SHCreateStreamOnFileEx ( TEXT ( "Z:\\Test.m4a" ), STGM_READWRITE | STGM_CREATE, 0, false, 0, &stream );
 
-	DCAudioGenerator * audGen = DCCreateWaveAudioGenerator ();
+	//DCAudioGenerator * audGen = DCCreateWaveAudioGenerator ();
+	DCAudioGenerator * audGen = DCCreateMFAudioGenerator ( DCMFCONTAINER_MP4, DCMFAF_AAC );
 
 	audGen->Begin ( stream, audioCapturer );
 	Sleep ( 10000 );
@@ -96,8 +104,10 @@ int main ( void )
 
 	delete audGen;
 
-	delete audioCapturer;/**/
+	delete audioCapturer;
+	/**/
 
+	DCMFShutdown ();
 	DCShutdown ();
 
 	return 0;

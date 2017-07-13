@@ -5,7 +5,7 @@
 class DCWASAPIAudioCapturer : public DCAudioCapturer
 {
 public:
-	DCWASAPIAudioCapturer ( IMMDevice * pDevice );
+	DCWASAPIAudioCapturer ( IMMDevice * pDevice, bool deviceRelease, DWORD streamFlags );
 	virtual ~DCWASAPIAudioCapturer ();
 
 public:
@@ -21,9 +21,6 @@ public:
 public:
 	float GetVolume ();
 	void SetVolume ( float volume );
-
-protected:
-	virtual DWORD GetStreamFlags ();
 
 private:
 	IAudioClient *pAudioClient;
@@ -46,9 +43,6 @@ class DCWASAPILoopbackAudioCapturer : public DCWASAPIAudioCapturer
 {
 public:
 	DCWASAPILoopbackAudioCapturer ();
-
-protected:
-	virtual DWORD GetStreamFlags ();
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -57,7 +51,7 @@ protected:
 
 DARAMCAM_EXPORTS DCAudioCapturer * DCCreateWASAPIAudioCapturer ( IMMDevice * pDevice )
 {
-	return new DCWASAPIAudioCapturer ( pDevice );
+	return new DCWASAPIAudioCapturer ( pDevice, false, 0 );
 }
 DARAMCAM_EXPORTS DCAudioCapturer * DCCreateWASAPILoopbackAudioCapturer ()
 {
@@ -86,7 +80,7 @@ const IID IID_IAudioClient = __uuidof( IAudioClient );
 const IID IID_IAudioCaptureClient = __uuidof( IAudioCaptureClient );
 const IID IID_ISimpleAudioVolume = __uuidof( ISimpleAudioVolume );
 
-DCWASAPIAudioCapturer::DCWASAPIAudioCapturer ( IMMDevice * pDevice )
+DCWASAPIAudioCapturer::DCWASAPIAudioCapturer ( IMMDevice * pDevice, bool deviceRelease, DWORD streamFlags )
 	: byteArray ( nullptr )
 {
 	pDevice->Activate ( IID_IAudioClient, CLSCTX_ALL, NULL, ( void** ) &pAudioClient );
@@ -117,13 +111,13 @@ DCWASAPIAudioCapturer::DCWASAPIAudioCapturer ( IMMDevice * pDevice )
 	}
 
 	REFERENCE_TIME hnsRequestedDuration = REFTIMES_PER_SEC;
-	pAudioClient->Initialize ( AUDCLNT_SHAREMODE_SHARED, GetStreamFlags (), hnsRequestedDuration, 0, pwfx, NULL );
+	pAudioClient->Initialize ( AUDCLNT_SHAREMODE_SHARED, streamFlags, hnsRequestedDuration, 0, pwfx, NULL );
 
 	REFERENCE_TIME hnsDefaultDevicePeriod;
 	pAudioClient->GetDevicePeriod ( &hnsDefaultDevicePeriod, NULL );
 	pAudioClient->GetBufferSize ( &bufferFrameCount );
 
-	pAudioClient->GetService ( IID_IAudioCaptureClient, ( void** ) &pCaptureClient );
+	HRESULT hr = pAudioClient->GetService ( IID_IAudioCaptureClient, ( void** ) &pCaptureClient );
 	pAudioClient->GetService ( IID_ISimpleAudioVolume, ( void** ) &pAudioVolume );
 	originalVolume = GetVolume ();
 
@@ -140,6 +134,9 @@ DCWASAPIAudioCapturer::DCWASAPIAudioCapturer ( IMMDevice * pDevice )
 		lTimeBetweenFires,
 		NULL, NULL, FALSE
 	);
+
+	if ( deviceRelease )
+		pDevice->Release ();
 }
 
 DCWASAPIAudioCapturer::~DCWASAPIAudioCapturer ()
@@ -226,8 +223,6 @@ void DCWASAPIAudioCapturer::SetVolume ( float volume )
 	pAudioVolume->SetMasterVolume ( volume, NULL );
 }
 
-DWORD DCWASAPIAudioCapturer::GetStreamFlags () { return 0; }
-
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -245,9 +240,7 @@ IMMDevice * _GetDefaultMultimediaDevice ()
 }
 
 DCWASAPILoopbackAudioCapturer::DCWASAPILoopbackAudioCapturer ()
-	: DCWASAPIAudioCapturer ( _GetDefaultMultimediaDevice () )
+	: DCWASAPIAudioCapturer ( _GetDefaultMultimediaDevice (), true, AUDCLNT_STREAMFLAGS_LOOPBACK )
 {
 
 }
-
-DWORD DCWASAPILoopbackAudioCapturer::GetStreamFlags () { return AUDCLNT_STREAMFLAGS_LOOPBACK; }

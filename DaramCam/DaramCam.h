@@ -63,7 +63,10 @@ public:
 	void SetColorRef ( COLORREF colorRef, unsigned x, unsigned y );
 
 public:
+	DCBitmap * Clone ();
+
 	void CopyFrom ( HDC hDC, HBITMAP hBitmap );
+	bool CopyFrom ( IWICBitmapSource * wicBitmapSource );
 
 private:
 	unsigned char * byteArray;
@@ -94,6 +97,8 @@ public:
 	virtual unsigned GetChannels () = 0;
 	virtual unsigned GetBitsPerSample () = 0;
 	virtual unsigned GetSamplerate () = 0;
+
+	virtual unsigned GetByterate ();
 
 	virtual void* GetAudioData ( unsigned * bufferLength ) = 0;
 };
@@ -127,6 +132,17 @@ public:
 
 public:
 	virtual void Begin ( IStream * stream, DCAudioCapturer * capturer ) = 0;
+	virtual void End () = 0;
+};
+
+// Abstract Audio/Video File Generator
+class DARAMCAM_EXPORTS DCAudioVideoGenerator
+{
+public:
+	virtual ~DCAudioVideoGenerator ();
+
+public:
+	virtual void Begin ( IStream * stream, DCScreenCapturer * screenCapturer, DCAudioCapturer * audioCapturer ) = 0;
 	virtual void End () = 0;
 };
 

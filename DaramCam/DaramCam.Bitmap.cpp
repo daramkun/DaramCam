@@ -24,7 +24,7 @@ unsigned DCBitmap::GetStride () { return stride; }
 
 unsigned DCBitmap::GetByteArraySize ()
 {
-	return colorDepth == 3 ? ( ( ( stride + 3 ) / 4 ) * 4 ) * height : width * height * 4;
+	return colorDepth == 3 ? ( ( ( stride + 3 ) / 4 ) * 4 ) * height : stride * height;
 }
 
 IWICBitmap * DCBitmap::ToWICBitmap ()
@@ -43,7 +43,7 @@ void DCBitmap::Resize ( unsigned _width, unsigned _height, unsigned _colorDepth 
 	if ( ( _width == 0 && _height == 0 ) || ( _colorDepth != 3 && _colorDepth != 4 ) ) { byteArray = nullptr; return; }
 
 	width = _width; height = _height; colorDepth = _colorDepth;
-	stride = ( _width * ( colorDepth * 8 ) + 7 ) / 8;
+	stride = colorDepth == 3 ? ( _width * ( colorDepth * 8 ) + 7 ) / 8 : width * colorDepth;
 	byteArray = new unsigned char [ GetByteArraySize () ];
 }
 
@@ -59,6 +59,13 @@ void DCBitmap::SetColorRef ( COLORREF colorRef, unsigned x, unsigned y )
 	memcpy ( byteArray + basePos, &colorRef, colorDepth );
 }
 
+DCBitmap * DCBitmap::Clone ()
+{
+	DCBitmap * ret = new DCBitmap ( width, height, colorDepth );
+	memcpy ( ret->byteArray, byteArray, GetByteArraySize () );
+	return ret;
+}
+
 void DCBitmap::CopyFrom ( HDC hDC, HBITMAP hBitmap )
 {
 	BITMAPINFO bmpInfo = { 0, };
@@ -70,4 +77,27 @@ void DCBitmap::CopyFrom ( HDC hDC, HBITMAP hBitmap )
 	bmpInfo.bmiHeader.biCompression = BI_RGB;
 	for ( unsigned i = 0; i < height; ++i )
 		GetDIBits ( hDC, hBitmap, i, 1, ( byteArray + ( ( height - 1 - i ) * stride ) ), &bmpInfo, DIB_RGB_COLORS );
+}
+bool DCBitmap::CopyFrom ( IWICBitmapSource * wicBitmapSource )
+{
+	if ( wicBitmapSource == nullptr ) return false;
+	
+	GUID pixelFormat;
+	UINT srcColorDepth;
+	
+	wicBitmapSource->GetPixelFormat ( &pixelFormat );
+	if ( pixelFormat == GUID_WICPixelFormat24bppBGR ) srcColorDepth = 3;
+	else if ( pixelFormat == GUID_WICPixelFormat32bppBGRA ) srcColorDepth = 4;
+	else return false;
+	
+	UINT srcWidth, srcHeight;
+	wicBitmapSource->GetSize ( &srcWidth, &srcHeight );
+
+	if ( width != srcWidth || height != srcHeight || colorDepth != srcColorDepth )
+		Resize ( srcWidth, srcHeight, srcColorDepth );
+
+	WICRect wicRect = { 0, 0, ( int ) srcWidth, ( int ) srcHeight };
+	wicBitmapSource->CopyPixels ( &wicRect, stride, GetByteArraySize (), GetByteArray () );
+
+	return true;
 }

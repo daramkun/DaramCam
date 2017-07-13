@@ -14,3 +14,8 @@ DCAudioGenerator::~DCAudioGenerator ()
 {
 
 }
+
+DCAudioVideoGenerator::~DCAudioVideoGenerator ()
+{
+
+}

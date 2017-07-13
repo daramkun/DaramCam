@@ -1,13 +1,15 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
-VisualStudioVersion = 15.0.26430.4
+VisualStudioVersion = 15.0.26430.15
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "DaramCam", "DaramCam\DaramCam.vcxproj", "{CF2C45DB-8B57-41F5-9BBC-157442310AC3}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "DaramCam.Test", "DaramCam.Test\DaramCam.Test.vcxproj", "{F1935F10-43D7-4A76-A0F0-6B751B58E901}"
 	ProjectSection(ProjectDependencies) = postProject
+		{6427D44E-2199-43D5-9FA6-A4D6A1441FE5} = {6427D44E-2199-43D5-9FA6-A4D6A1441FE5}
 		{CF2C45DB-8B57-41F5-9BBC-157442310AC3} = {CF2C45DB-8B57-41F5-9BBC-157442310AC3}
+		{5DAF70E6-3A44-4961-A277-8A24EA4B04B5} = {5DAF70E6-3A44-4961-A277-8A24EA4B04B5}
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "DaramCam Core", "DaramCam Core", "{8944CF02-65BE-414C-9AF0-15DA59276A9E}"
@@ -21,6 +23,13 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "DaramCam External Capturers", "DaramCam External Capturers", "{76C89467-1DEE-40B2-8F8C-033A5011F1C0}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "DaramCam Test", "DaramCam Test", "{E8D33266-AF43-41FE-822F-4A8BDE2135EA}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "DaramCam.FFmpegGenerator", "DaramCam.FFmpegGenerator\DaramCam.FFmpegGenerator.vcxproj", "{5DAF70E6-3A44-4961-A277-8A24EA4B04B5}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "DaramCam.MediaFoundationGenerator", "DaramCam.MediaFoundationGenerator\DaramCam.MediaFoundationGenerator.vcxproj", "{6427D44E-2199-43D5-9FA6-A4D6A1441FE5}"
+	ProjectSection(ProjectDependencies) = postProject
+		{CF2C45DB-8B57-41F5-9BBC-157442310AC3} = {CF2C45DB-8B57-41F5-9BBC-157442310AC3}
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -46,6 +55,22 @@ Global
 		{F1935F10-43D7-4A76-A0F0-6B751B58E901}.Release|x64.Build.0 = Release|x64
 		{F1935F10-43D7-4A76-A0F0-6B751B58E901}.Release|x86.ActiveCfg = Release|Win32
 		{F1935F10-43D7-4A76-A0F0-6B751B58E901}.Release|x86.Build.0 = Release|Win32
+		{5DAF70E6-3A44-4961-A277-8A24EA4B04B5}.Debug|x64.ActiveCfg = Debug|x64
+		{5DAF70E6-3A44-4961-A277-8A24EA4B04B5}.Debug|x64.Build.0 = Debug|x64
+		{5DAF70E6-3A44-4961-A277-8A24EA4B04B5}.Debug|x86.ActiveCfg = Debug|Win32
+		{5DAF70E6-3A44-4961-A277-8A24EA4B04B5}.Debug|x86.Build.0 = Debug|Win32
+		{5DAF70E6-3A44-4961-A277-8A24EA4B04B5}.Release|x64.ActiveCfg = Release|x64
+		{5DAF70E6-3A44-4961-A277-8A24EA4B04B5}.Release|x64.Build.0 = Release|x64
+		{5DAF70E6-3A44-4961-A277-8A24EA4B04B5}.Release|x86.ActiveCfg = Release|Win32
+		{5DAF70E6-3A44-4961-A277-8A24EA4B04B5}.Release|x86.Build.0 = Release|Win32
+		{6427D44E-2199-43D5-9FA6-A4D6A1441FE5}.Debug|x64.ActiveCfg = Debug|x64
+		{6427D44E-2199-43D5-9FA6-A4D6A1441FE5}.Debug|x64.Build.0 = Debug|x64
+		{6427D44E-2199-43D5-9FA6-A4D6A1441FE5}.Debug|x86.ActiveCfg = Debug|Win32
+		{6427D44E-2199-43D5-9FA6-A4D6A1441FE5}.Debug|x86.Build.0 = Debug|Win32
+		{6427D44E-2199-43D5-9FA6-A4D6A1441FE5}.Release|x64.ActiveCfg = Release|x64
+		{6427D44E-2199-43D5-9FA6-A4D6A1441FE5}.Release|x64.Build.0 = Release|x64
+		{6427D44E-2199-43D5-9FA6-A4D6A1441FE5}.Release|x86.ActiveCfg = Release|Win32
+		{6427D44E-2199-43D5-9FA6-A4D6A1441FE5}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -53,6 +78,8 @@ Global
 	GlobalSection(NestedProjects) = preSolution
 		{CF2C45DB-8B57-41F5-9BBC-157442310AC3} = {8944CF02-65BE-414C-9AF0-15DA59276A9E}
 		{F1935F10-43D7-4A76-A0F0-6B751B58E901} = {E8D33266-AF43-41FE-822F-4A8BDE2135EA}
+		{5DAF70E6-3A44-4961-A277-8A24EA4B04B5} = {548ACCFC-137E-439D-A9D7-1DB191C5182C}
+		{6427D44E-2199-43D5-9FA6-A4D6A1441FE5} = {548ACCFC-137E-439D-A9D7-1DB191C5182C}
 	EndGlobalSection
 	GlobalSection(Performance) = preSolution
 		HasPerformanceSessions = true

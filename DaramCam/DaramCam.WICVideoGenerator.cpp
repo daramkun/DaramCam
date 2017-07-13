@@ -57,8 +57,6 @@ DARAMCAM_EXPORTS void DCSetSizeToWICVideoGenerator ( DCVideoGenerator * generato
 DCWICVideoGenerator::DCWICVideoGenerator ( unsigned _frameTick )
 	: resize ( nullptr )
 {
-	CoCreateInstance ( CLSID_WICImagingFactory, NULL, CLSCTX_INPROC_SERVER, IID_IWICImagingFactory, ( LPVOID* ) &g_piFactory );
-
 	frameTick = _frameTick;
 }
 
@@ -186,23 +184,19 @@ DWORD WINAPI WICVG_Capturer ( LPVOID vg )
 
 			WICVG_CONTAINER container;
 			container.deltaTime = ( currentTick - lastTick ) / 10;
-			//container.bitmapSource = bitmap->ToWICBitmap ();
-			auto wicBitmap = bitmap->ToWICBitmap ();
-			IWICBitmapSource * wicBitmapSource;
+			IWICBitmap * wicBitmap = bitmap->ToWICBitmap ();
 			if ( videoGen->resize != nullptr )
 			{
 				IWICBitmapScaler * wicBitmapScaler;
 				g_piFactory->CreateBitmapScaler ( &wicBitmapScaler );
 				wicBitmapScaler->Initialize ( wicBitmap, videoGen->resize->cx, videoGen->resize->cy, WICBitmapInterpolationModeFant );
-				wicBitmapSource = wicBitmapScaler;
+				container.bitmapSource = wicBitmapScaler;
 				wicBitmap->Release ();
 			}
 			else
 			{
-				wicBitmapSource = wicBitmap;
-				//wicBitmapSource->AddRef ();
+				container.bitmapSource = wicBitmap;
 			}
-			container.bitmapSource = wicBitmapSource;
 
 			videoGen->capturedQueue.push ( container );
 
@@ -228,7 +222,6 @@ void DCWICVideoGenerator::Begin ( IStream * _stream, DCScreenCapturer * _capture
 void DCWICVideoGenerator::End ()
 {
 	threadRunning = false;
-	//WaitForSingleObject ( threadHandle, INFINITE );
 	WaitForMultipleObjects ( 2, threadHandles, true, INFINITE );
 }
 

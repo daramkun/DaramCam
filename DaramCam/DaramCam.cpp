@@ -15,7 +15,7 @@ using namespace Gdiplus;
 #pragma comment ( lib, "GdiPlus.lib" )
 
 ULONG_PTR g_gdiplusToken;
-IWICImagingFactory * g_piFactory;
+DARAMCAM_EXPORTS IWICImagingFactory * g_piFactory;
 
 void DCStartup ()
 {

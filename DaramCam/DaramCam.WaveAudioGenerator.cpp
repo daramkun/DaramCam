@@ -49,7 +49,7 @@ DWORD WINAPI WAVAG_Progress ( LPVOID vg )
 	{
 		unsigned bufferLength;
 		void * data = audioGen->capturer->GetAudioData ( &bufferLength );
-		if ( data == nullptr )
+		if ( data == nullptr || bufferLength == 0 )
 			continue;
 		audioGen->stream->Write ( data, bufferLength, nullptr );
 		total += bufferLength;

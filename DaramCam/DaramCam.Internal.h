@@ -2,6 +2,6 @@
 
 #include <wincodec.h>
 
-extern IWICImagingFactory * g_piFactory;
+DARAMCAM_EXPORTS extern IWICImagingFactory * g_piFactory;
 
 #endif
