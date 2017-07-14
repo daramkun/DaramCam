@@ -54,6 +54,8 @@ private:
 
 DARAMCAMMEDIAFOUNDATIONGENERATOR_EXPORTS DCVideoGenerator * DCCreateMFVideoGenerator ( DWORD containerFormat, DWORD videoFormat, unsigned frameTick )
 {
+	if ( containerFormat != DCMFCONTAINER_MP4 ) return nullptr;
+
 	return new DCMFVideoGenerator ( containerFormat, videoFormat, frameTick );
 }
 

@@ -44,7 +44,7 @@ int main ( void )
 		hWnd = DCGetActiveWindowFromProcess ( process );*/
 
 	///// Image Capture
-	/**/
+	/*
 	SHCreateStreamOnFileEx ( TEXT ( "Z:\\Test.png" ), STGM_READWRITE | STGM_CREATE, 0, false, 0, &stream );
 
 	//DCScreenCapturer * screenCapturer = new DCCreateGDIScreenCapturer ( hWnd );
@@ -91,14 +91,14 @@ int main ( void )
 	scanf ( "%d", &selected );
 
 	DCAudioCapturer * audioCapturer = DCCreateWASAPIAudioCapturer ( devices [ selected ] );/**/
-	/*
+	/**/
 	DCAudioCapturer * audioCapturer = DCCreateWASAPILoopbackAudioCapturer ();
 	
 	//SHCreateStreamOnFileEx ( TEXT ( "Z:\\Test.adts" ), STGM_READWRITE | STGM_CREATE, 0, false, 0, &stream );
-	SHCreateStreamOnFileEx ( TEXT ( "Z:\\Test.m4a" ), STGM_READWRITE | STGM_CREATE, 0, false, 0, &stream );
+	SHCreateStreamOnFileEx ( TEXT ( "Z:\\Test.adts" ), STGM_READWRITE | STGM_CREATE, 0, false, 0, &stream );
 
 	//DCAudioGenerator * audGen = DCCreateWaveAudioGenerator ();
-	DCAudioGenerator * audGen = DCCreateMFAudioGenerator ( DCMFCONTAINER_MP4, DCMFAF_AAC );
+	DCAudioGenerator * audGen = DCCreateMFAudioGenerator ( DCMFCONTAINER_ADTS, DCMFAF_AAC );
 
 	audGen->Begin ( stream, audioCapturer );
 	Sleep ( 10000 );

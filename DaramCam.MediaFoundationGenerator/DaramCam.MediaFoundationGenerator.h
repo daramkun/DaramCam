@@ -12,6 +12,7 @@
 
 enum {
 	DCMFCONTAINER_MP4,
+	DCMFCONTAINER_ADTS,
 };
 
 enum {

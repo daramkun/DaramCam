@@ -40,6 +40,11 @@ private:
 
 DARAMCAMMEDIAFOUNDATIONGENERATOR_EXPORTS DCAudioGenerator * DCCreateMFAudioGenerator ( DWORD containerFormat, DWORD audioFormat )
 {
+	if ( containerFormat == DCMFCONTAINER_ADTS || containerFormat == DCMFCONTAINER_MP4 )
+	{
+		if ( audioFormat != DCMFAF_AAC )
+			return nullptr;
+	}
 	return new DCMFAudioGenerator ( containerFormat, audioFormat );
 }
 
@@ -68,8 +73,6 @@ DWORD WINAPI MFAG_Progress ( LPVOID vg )
 
 	audioGen->capturer->Begin ();
 	audioGen->sinkWriter->BeginWriting ();
-
-	HRESULT hr;
 
 	MFTIME totalDuration = 0;
 	while ( audioGen->threadRunning )
@@ -104,7 +107,7 @@ DWORD WINAPI MFAG_Progress ( LPVOID vg )
 
 		sample->Release ();
 
-		Sleep ( 1 );
+		Sleep ( 0 );
 	}
 
 	audioGen->sinkWriter->Flush ( audioGen->streamIndex );
@@ -128,17 +131,29 @@ void DCMFAudioGenerator::Begin ( IStream * _stream, DCAudioCapturer * _capturer 
 	IMFMediaType * audioMediaType;
 	if ( FAILED ( hr = MFCreateMediaType ( &audioMediaType ) ) )
 		return;
-	audioMediaType->SetGUID ( MF_MT_MAJOR_TYPE, MFMediaType_Audio );
-	audioMediaType->SetGUID ( MF_MT_SUBTYPE, MFAudioFormat_AAC );
-	audioMediaType->SetUINT32 ( MF_MT_AUDIO_BITS_PER_SAMPLE, 16 );
-	audioMediaType->SetUINT32 ( MF_MT_AUDIO_SAMPLES_PER_SECOND, _capturer->GetSamplerate () );
-	audioMediaType->SetUINT32 ( MF_MT_AUDIO_NUM_CHANNELS, _capturer->GetChannels () );
-	audioMediaType->SetUINT32 ( MF_MT_AUDIO_AVG_BYTES_PER_SECOND, 24000 );
-	audioMediaType->SetUINT32 ( MF_MT_AAC_PAYLOAD_TYPE, 0 );
+	if ( audioFormat == DCMFAF_AAC )
+	{
+		audioMediaType->SetGUID ( MF_MT_MAJOR_TYPE, MFMediaType_Audio );
+		audioMediaType->SetGUID ( MF_MT_SUBTYPE, MFAudioFormat_AAC );
+		audioMediaType->SetUINT32 ( MF_MT_AUDIO_BITS_PER_SAMPLE, 16 );
+		audioMediaType->SetUINT32 ( MF_MT_AUDIO_SAMPLES_PER_SECOND, _capturer->GetSamplerate () );
+		audioMediaType->SetUINT32 ( MF_MT_AUDIO_NUM_CHANNELS, _capturer->GetChannels () );
+		audioMediaType->SetUINT32 ( MF_MT_AUDIO_AVG_BYTES_PER_SECOND, 24000 );
+		audioMediaType->SetUINT32 ( MF_MT_AAC_PAYLOAD_TYPE, 0 );
+	}
+	else return;
 
-	if ( FAILED ( hr = MFCreateMPEG4MediaSink ( byteStream, nullptr, audioMediaType, &mediaSink ) ) )
-	//if ( FAILED ( hr = MFCreateADTSMediaSink ( byteStream, audioMediaType, &mediaSink ) ) )
-		return;
+	if ( containerFormat == DCMFCONTAINER_MP4 )
+	{
+		if ( FAILED ( hr = MFCreateMPEG4MediaSink ( byteStream, nullptr, audioMediaType, &mediaSink ) ) )
+			return;
+	}
+	else if ( containerFormat == DCMFCONTAINER_ADTS )
+	{
+		if ( FAILED ( hr = MFCreateADTSMediaSink ( byteStream, audioMediaType, &mediaSink ) ) )
+			return;
+	}
+	else return;
 
 	audioMediaType->Release ();
 

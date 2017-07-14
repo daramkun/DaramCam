@@ -477,7 +477,7 @@ HRESULT DXGIManager::GetOutputBits(BYTE* pBits )
 	if(FAILED(hr))
 		return hr;
 
-	//DrawMousePointer(pBuf, rcOutput, rcOutput);
+	DrawMousePointer(pBuf, rcOutput, rcOutput);
 	
 	return hr;
 }
