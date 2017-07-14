@@ -6,6 +6,8 @@
 #include <mfplay.h>
 #include <mftransform.h>
 
+#include <atomic>
+
 class DCMFAudioGenerator : public DCAudioGenerator
 {
 	friend DWORD WINAPI MFAG_Progress ( LPVOID vg );
@@ -25,7 +27,7 @@ private:
 	DWORD containerFormat;
 	DWORD audioFormat;
 
-	bool threadRunning;
+	std::atomic_bool threadRunning;
 	HANDLE threadHandle;
 
 	IMFMediaSink * mediaSink;
@@ -71,6 +73,12 @@ DWORD WINAPI MFAG_Progress ( LPVOID vg )
 {
 	DCMFAudioGenerator * audioGen = ( DCMFAudioGenerator* ) vg;
 
+	IMFSample * sample;
+	MFCreateSample ( &sample );
+	IMFMediaBuffer * buffer;
+	MFCreateMemoryBuffer ( audioGen->capturer->GetSamplerate (), &buffer );
+	sample->AddBuffer ( buffer );
+
 	audioGen->capturer->Begin ();
 	audioGen->sinkWriter->BeginWriting ();
 
@@ -82,33 +90,25 @@ DWORD WINAPI MFAG_Progress ( LPVOID vg )
 		if ( data == nullptr || bufferLength == 0 )
 			continue;
 
-		IMFSample * sample;
-		MFCreateSample ( &sample );
-
 		sample->SetSampleFlags ( 0 );
 		sample->SetSampleTime ( totalDuration );
 		MFTIME duration = ( bufferLength * 10000000ULL ) / audioGen->capturer->GetByterate ();
 		sample->SetSampleDuration ( duration );
 		totalDuration += duration;
 
-		IMFMediaBuffer * buffer;
-		MFCreateMemoryBuffer ( bufferLength, &buffer );
 		buffer->SetCurrentLength ( bufferLength );
 		BYTE * pbBuffer;
 		buffer->Lock ( &pbBuffer, nullptr, nullptr );
 		RtlCopyMemory ( pbBuffer, data, bufferLength );
 		buffer->Unlock ();
 
-		sample->AddBuffer ( buffer );
-
-		buffer->Release ();
-
 		audioGen->sinkWriter->WriteSample ( audioGen->streamIndex, sample );
-
-		sample->Release ();
 
 		Sleep ( 0 );
 	}
+
+	buffer->Release ();
+	sample->Release ();
 
 	audioGen->sinkWriter->Flush ( audioGen->streamIndex );
 	audioGen->sinkWriter->Finalize ();

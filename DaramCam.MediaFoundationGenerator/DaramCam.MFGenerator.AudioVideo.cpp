@@ -10,8 +10,7 @@
 
 #pragma comment ( lib, "winmm.lib" )
 
-#include <concurrent_queue.h>
-#include <ppltasks.h>
+#include <atomic>
 
 struct MFVG_CONTAINER { DCBitmap * bitmapSource; UINT deltaTime; };
 
@@ -38,7 +37,7 @@ private:
 	DWORD audioFormat;
 
 	HANDLE threadHandles [ 2 ];
-	bool threadRunning, writingStarted;
+	std::atomic_bool threadRunning, writingStarted;
 
 	IMFMediaSink * mediaSink;
 	IMFSinkWriter * sinkWriter;
@@ -47,8 +46,6 @@ private:
 
 	unsigned frameTick;
 	unsigned fps;
-
-	Concurrency::concurrent_queue<MFVG_CONTAINER> capturedQueue;
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -80,21 +77,26 @@ DWORD WINAPI MFVG_Progress2 ( LPVOID vg )
 {
 	DCMFAudioVideoGenerator * videoGen = ( DCMFAudioVideoGenerator* ) vg;
 
+	DCBitmap * bitmap = videoGen->videoCapturer->GetCapturedBitmap ();
+	unsigned stride = bitmap->GetStride (), height = bitmap->GetHeight ();
+
+	IMFSample * sample;
+	MFCreateSample ( &sample );
+	IMFMediaBuffer * buffer;
+	MFCreateMemoryBuffer ( bitmap->GetByteArraySize (), &buffer );
+	sample->AddBuffer ( buffer );
+
 	videoGen->sinkWriter->BeginWriting ();
 	videoGen->writingStarted = true;
 
 	MFTIME totalTime = 0;
 	DWORD lastTick, currentTick;
 	lastTick = currentTick = timeGetTime ();
-	while ( videoGen->threadRunning || !videoGen->capturedQueue.empty () )
+	while ( videoGen->threadRunning )
 	{
 		if ( ( currentTick = timeGetTime () ) - lastTick >= videoGen->frameTick )
 		{
 			videoGen->videoCapturer->Capture ();
-			DCBitmap * bitmap = videoGen->videoCapturer->GetCapturedBitmap ();
-
-			IMFSample * sample;
-			MFCreateSample ( &sample );
 
 			sample->SetSampleFlags ( 0 );
 			sample->SetSampleTime ( totalTime );
@@ -102,32 +104,22 @@ DWORD WINAPI MFVG_Progress2 ( LPVOID vg )
 			sample->SetSampleDuration ( duration );
 			totalTime += duration;
 
-			IMFMediaBuffer * buffer;
-			MFCreateMemoryBuffer ( bitmap->GetByteArraySize (), &buffer );
 			buffer->SetCurrentLength ( bitmap->GetByteArraySize () );
 			BYTE * pbBuffer;
 			buffer->Lock ( &pbBuffer, nullptr, nullptr );
-			unsigned stride = bitmap->GetStride ();
-			for ( unsigned y = 0; y < bitmap->GetHeight (); ++y )
-			{
-				UINT offset1 = ( bitmap->GetHeight () - y - 1 ) * stride,
-					offset2 = y * stride;
-				RtlCopyMemory ( pbBuffer + offset1, bitmap->GetByteArray () + offset2, bitmap->GetStride () );
-			}
+			for ( unsigned y = 0; y < height; ++y )
+				memcpy ( pbBuffer + ( ( height - y - 1 ) * stride ), bitmap->GetByteArray () + ( y * stride ), stride );
 			buffer->Unlock ();
 
-			sample->AddBuffer ( buffer );
-
-			buffer->Release ();
-
 			videoGen->sinkWriter->WriteSample ( videoGen->videoStreamIndex, sample );
-
-			sample->Release ();
 
 			lastTick = currentTick;
 		}
 		Sleep ( 0 );
 	}
+
+	buffer->Release ();
+	sample->Release ();
 
 	videoGen->writingStarted = false;
 	videoGen->sinkWriter->Flush ( videoGen->videoStreamIndex );
@@ -143,9 +135,13 @@ DWORD WINAPI MFAG_Progress2 ( LPVOID vg )
 
 	while ( !audioGen->writingStarted );
 
+	IMFSample * sample;
+	MFCreateSample ( &sample );
+	IMFMediaBuffer * buffer;
+	MFCreateMemoryBuffer ( audioGen->audioCapturer->GetSamplerate (), &buffer );
+	sample->AddBuffer ( buffer );
+
 	audioGen->audioCapturer->Begin ();
-	
-	HRESULT hr;
 
 	MFTIME totalDuration = 0;
 	while ( audioGen->threadRunning && audioGen->writingStarted )
@@ -155,35 +151,26 @@ DWORD WINAPI MFAG_Progress2 ( LPVOID vg )
 		if ( data == nullptr || bufferLength == 0 )
 			continue;
 
-		IMFSample * sample;
-		if ( FAILED ( hr = MFCreateSample ( &sample ) ) )
-			continue;
-
 		sample->SetSampleFlags ( 0 );
 		sample->SetSampleTime ( totalDuration );
 		MFTIME duration = ( bufferLength * 10000000ULL ) / audioGen->audioCapturer->GetByterate ();
 		sample->SetSampleDuration ( duration );
 		totalDuration += duration;
 
-		IMFMediaBuffer * buffer;
-		if ( FAILED ( hr = MFCreateMemoryBuffer ( bufferLength, &buffer ) ) )
-			continue;
 		buffer->SetCurrentLength ( bufferLength );
 		BYTE * pbBuffer;
 		buffer->Lock ( &pbBuffer, nullptr, nullptr );
 		RtlCopyMemory ( pbBuffer, data, bufferLength );
 		buffer->Unlock ();
 
-		if ( FAILED ( hr = sample->AddBuffer ( buffer ) ) )
-			continue;
+		audioGen->sinkWriter->WriteSample ( audioGen->audioStreamIndex, sample );
 
-		buffer->Release ();
-
-		if ( FAILED ( hr = audioGen->sinkWriter->WriteSample ( audioGen->audioStreamIndex, sample ) ) )
-			continue;
-
-		sample->Release ();
+		Sleep ( 0 );
 	}
+
+	buffer->Release ();
+	sample->Release ();
+
 	audioGen->audioCapturer->End ();
 
 	return 0;
@@ -203,7 +190,7 @@ void DCMFAudioVideoGenerator::Begin ( IStream * _stream, DCScreenCapturer * _vid
 	videoMediaType->SetGUID ( MF_MT_MAJOR_TYPE, MFMediaType_Video );
 	videoMediaType->SetGUID ( MF_MT_SUBTYPE, MFVideoFormat_H264 );
 	videoMediaType->SetUINT32 ( MF_MT_AVG_BITRATE, _videoCapturer->GetCapturedBitmap ()->GetWidth () * _videoCapturer->GetCapturedBitmap ()->GetHeight () * 5 );
-	videoMediaType->SetUINT32 ( MF_MT_MPEG2_PROFILE, eAVEncH264VProfile_High );
+	videoMediaType->SetUINT32 ( MF_MT_MPEG2_PROFILE, eAVEncH264VProfile_Main );
 	videoMediaType->SetUINT32 ( MF_MT_INTERLACE_MODE, MFVideoInterlace_Progressive );
 	MFSetAttributeSize ( videoMediaType, MF_MT_FRAME_SIZE, _videoCapturer->GetCapturedBitmap ()->GetWidth (), _videoCapturer->GetCapturedBitmap ()->GetHeight () );
 	MFSetAttributeRatio ( videoMediaType, MF_MT_FRAME_RATE, fps, 1 );

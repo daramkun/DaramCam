@@ -49,7 +49,7 @@ int main ( void )
 
 	//DCScreenCapturer * screenCapturer = new DCCreateGDIScreenCapturer ( hWnd );
 	//DCScreenCapturer * screenCapturer = DCCreateGDIScreenCapturer ( 0 );
-	DCScreenCapturer * screenCapturer = DCCreateDXGIScreenCapturer ( DCDXGIScreenCapturerRange_SubMonitors );
+	//DCScreenCapturer * screenCapturer = DCCreateDXGIScreenCapturer ( DCDXGIScreenCapturerRange_SubMonitors );
 
 	/**
 	SHCreateStreamOnFileEx ( TEXT ( "Z:\\Test.png" ), STGM_READWRITE | STGM_CREATE, 0, false, 0, &stream );
@@ -65,7 +65,7 @@ int main ( void )
 	delete imgGen;
 	/**/
 
-	/**/
+	/**
 	SHCreateStreamOnFileEx ( TEXT ( "Z:\\Test.mp4" ), STGM_READWRITE | STGM_CREATE, 0, false, 0, &stream );
 
 	//DCVideoGenerator * vidGen = DCCreateWICVideoGenerator ( WICVG_FRAMETICK_24FPS );
@@ -119,7 +119,7 @@ int main ( void )
 	////////////////////////////////////////////////////////////////////////////////////////////////
 
 	///// Audio and Video Capture
-	/**
+	/**/
 	SHCreateStreamOnFileEx ( TEXT ( "Z:\\Test.mp4" ), STGM_READWRITE | STGM_CREATE, 0, false, 0, &stream );
 	DCScreenCapturer * screenCapturer = DCCreateDXGIScreenCapturer ( DCDXGIScreenCapturerRange_SubMonitors );
 	DCAudioCapturer * audioCapturer = DCCreateWASAPILoopbackAudioCapturer ();

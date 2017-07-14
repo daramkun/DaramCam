@@ -8,11 +8,11 @@ public:
 	virtual ~DCGDIScreenCapturer ();
 
 public:
-	virtual void Capture ();
+	virtual void Capture () noexcept;
 	virtual DCBitmap* GetCapturedBitmap () noexcept;
 
 public:
-	void SetRegion ( const RECT * region = nullptr );
+	void SetRegion ( const RECT * region = nullptr ) noexcept;
 
 private:
 	HWND hWnd;
@@ -58,7 +58,7 @@ DCGDIScreenCapturer::~DCGDIScreenCapturer ()
 	ReleaseDC ( hWnd, desktopDC );
 }
 
-void DCGDIScreenCapturer::Capture ()
+void DCGDIScreenCapturer::Capture () noexcept
 {
 	HBITMAP oldBitmap = ( HBITMAP ) SelectObject ( captureDC, captureBitmap );
 	if ( captureRegion == nullptr )
@@ -79,7 +79,7 @@ void DCGDIScreenCapturer::Capture ()
 
 DCBitmap * DCGDIScreenCapturer::GetCapturedBitmap () noexcept { return &capturedBitmap; }
 
-void DCGDIScreenCapturer::SetRegion ( const RECT * _region )
+void DCGDIScreenCapturer::SetRegion ( const RECT * _region ) noexcept
 {
 	if ( _region == nullptr && captureRegion == nullptr )
 		return;

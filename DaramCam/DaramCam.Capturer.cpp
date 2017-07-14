@@ -10,7 +10,7 @@ DCAudioCapturer::~DCAudioCapturer ()
 
 }
 
-unsigned DCAudioCapturer::GetByterate ()
+unsigned DCAudioCapturer::GetByterate () noexcept
 {
 	return GetChannels () * GetSamplerate () * ( GetBitsPerSample () / 8 );
 }

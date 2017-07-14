@@ -9,7 +9,7 @@ public:
 	virtual ~DCDXGISwapChainCapturer ();
 
 public:
-	virtual void Capture ();
+	virtual void Capture () noexcept;
 	virtual DCBitmap * GetCapturedBitmap () noexcept;
 
 private:
@@ -45,7 +45,7 @@ DCDXGISwapChainCapturer::~DCDXGISwapChainCapturer ()
 	dxgiSwapChain->Release ();
 }
 
-void DCDXGISwapChainCapturer::Capture ()
+void DCDXGISwapChainCapturer::Capture () noexcept
 {
 	IDXGISurface * surface;
 	dxgiSwapChain->GetBuffer ( 0, __uuidof ( IDXGISurface ), ( void ** ) &surface );

@@ -80,7 +80,7 @@ public:
 	virtual ~DCScreenCapturer ();
 
 public:
-	virtual void Capture () = 0;
+	virtual void Capture () noexcept = 0;
 	virtual DCBitmap * GetCapturedBitmap () noexcept = 0;
 };
 
@@ -102,7 +102,7 @@ public:
 	virtual unsigned GetByterate () noexcept;
 
 public:
-	virtual void* GetAudioData ( unsigned * bufferLength ) = 0;
+	virtual void* GetAudioData ( unsigned * bufferLength ) noexcept = 0;
 };
 
 // Abstract Image File Generator

@@ -18,11 +18,11 @@ public:
 	virtual unsigned GetSamplerate () noexcept;
 
 public:
-	virtual void* GetAudioData ( unsigned * bufferLength );
+	virtual void* GetAudioData ( unsigned * bufferLength ) noexcept;
 
 public:
-	float GetVolume ();
-	void SetVolume ( float volume );
+	float GetVolume () noexcept;
+	void SetVolume ( float volume ) noexcept;
 
 private:
 	IAudioClient *pAudioClient;
@@ -171,7 +171,7 @@ unsigned DCWASAPIAudioCapturer::GetChannels () noexcept { return pwfx->nChannels
 unsigned DCWASAPIAudioCapturer::GetBitsPerSample () noexcept { return pwfx->wBitsPerSample; }
 unsigned DCWASAPIAudioCapturer::GetSamplerate () noexcept { return pwfx->nSamplesPerSec; }
 
-void * DCWASAPIAudioCapturer::GetAudioData ( unsigned * bufferLength )
+void * DCWASAPIAudioCapturer::GetAudioData ( unsigned * bufferLength ) noexcept
 {
 	UINT32 packetLength = 0;
 	DWORD totalLength = 0;
@@ -213,14 +213,14 @@ void * DCWASAPIAudioCapturer::GetAudioData ( unsigned * bufferLength )
 	return byteArray;
 }
 
-float DCWASAPIAudioCapturer::GetVolume ()
+float DCWASAPIAudioCapturer::GetVolume () noexcept
 {
 	float temp;
 	pAudioVolume->GetMasterVolume ( &temp );
 	return temp;
 }
 
-void DCWASAPIAudioCapturer::SetVolume ( float volume )
+void DCWASAPIAudioCapturer::SetVolume ( float volume ) noexcept
 {
 	pAudioVolume->SetMasterVolume ( volume, NULL );
 }

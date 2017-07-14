@@ -14,7 +14,7 @@ public:
 	virtual ~DCDXGIScreenCapturer ();
 
 public:
-	virtual void Capture ();
+	virtual void Capture () noexcept;
 	virtual DCBitmap * GetCapturedBitmap () noexcept;
 
 private:
@@ -58,7 +58,7 @@ DCDXGIScreenCapturer::~DCDXGIScreenCapturer ()
 	delete dxgiManager;
 }
 
-void DCDXGIScreenCapturer::Capture ()
+void DCDXGIScreenCapturer::Capture () noexcept
 {
 	while ( FAILED ( dxgiManager->GetOutputBits ( capturedBitmap.GetByteArray () ) ) )
 		;

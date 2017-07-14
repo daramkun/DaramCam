@@ -10,8 +10,7 @@
 
 #pragma comment ( lib, "winmm.lib" )
 
-#include <concurrent_queue.h>
-#include <ppltasks.h>
+#include <atomic>
 
 #pragma intrinsic(memcpy)
 
@@ -37,7 +36,7 @@ private:
 	DWORD videoFormat;
 
 	HANDLE threadHandle;
-	bool threadRunning;
+	std::atomic_bool threadRunning;
 
 	IMFMediaSink * mediaSink;
 	IMFSinkWriter * sinkWriter;
@@ -46,8 +45,6 @@ private:
 
 	unsigned frameTick;
 	unsigned fps;
-
-	Concurrency::concurrent_queue<MFVG_CONTAINER> capturedQueue;
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -78,20 +75,25 @@ DWORD WINAPI MFVG_Progress ( LPVOID vg )
 {
 	DCMFVideoGenerator * videoGen = ( DCMFVideoGenerator* ) vg;
 
+	DCBitmap * bitmap = videoGen->capturer->GetCapturedBitmap ();
+	unsigned stride = bitmap->GetStride (), height = bitmap->GetHeight ();
+
+	IMFSample * sample;
+	MFCreateSample ( &sample );
+	IMFMediaBuffer * buffer;
+	MFCreateMemoryBuffer ( bitmap->GetByteArraySize (), &buffer );
+	sample->AddBuffer ( buffer );
+
 	videoGen->sinkWriter->BeginWriting ();
 
 	MFTIME totalTime = 0;
 	DWORD lastTick, currentTick;
 	lastTick = currentTick = timeGetTime ();
-	while ( videoGen->threadRunning || !videoGen->capturedQueue.empty () )
+	while ( videoGen->threadRunning )
 	{
 		if ( ( currentTick = timeGetTime () ) - lastTick >= videoGen->frameTick )
 		{
 			videoGen->capturer->Capture ();
-			DCBitmap * bitmap = videoGen->capturer->GetCapturedBitmap ();
-
-			IMFSample * sample;
-			MFCreateSample ( &sample );
 
 			sample->SetSampleFlags ( 0 );
 			sample->SetSampleTime ( totalTime );
@@ -99,28 +101,22 @@ DWORD WINAPI MFVG_Progress ( LPVOID vg )
 			sample->SetSampleDuration ( duration );
 			totalTime += duration;
 
-			IMFMediaBuffer * buffer;
-			MFCreateMemoryBuffer ( bitmap->GetByteArraySize (), &buffer );
 			buffer->SetCurrentLength ( bitmap->GetByteArraySize () );
 			BYTE * pbBuffer;
 			buffer->Lock ( &pbBuffer, nullptr, nullptr );
-			unsigned stride = bitmap->GetStride (), height = bitmap->GetHeight ();
 			for ( unsigned y = 0; y < height; ++y )
-				memcpy ( pbBuffer + ( ( bitmap->GetHeight () - y - 1 ) * stride ), bitmap->GetByteArray () + ( y * stride ), bitmap->GetStride () );
+				memcpy ( pbBuffer + ( ( height - y - 1 ) * stride ), bitmap->GetByteArray () + ( y * stride ), stride );
 			buffer->Unlock ();
 
-			sample->AddBuffer ( buffer );
-
-			buffer->Release ();
-
 			videoGen->sinkWriter->WriteSample ( videoGen->streamIndex, sample );
-
-			sample->Release ();
 
 			lastTick = currentTick;
 		}
 		Sleep ( 0 );
 	}
+
+	buffer->Release ();
+	sample->Release ();
 
 	videoGen->sinkWriter->Flush ( videoGen->streamIndex );
 	videoGen->sinkWriter->Finalize ();
@@ -142,7 +138,7 @@ void DCMFVideoGenerator::Begin ( IStream * _stream, DCScreenCapturer * _capturer
 	videoMediaType->SetGUID ( MF_MT_MAJOR_TYPE, MFMediaType_Video );
 	videoMediaType->SetGUID ( MF_MT_SUBTYPE, MFVideoFormat_H264 );
 	videoMediaType->SetUINT32 ( MF_MT_AVG_BITRATE, _capturer->GetCapturedBitmap ()->GetWidth () * _capturer->GetCapturedBitmap ()->GetHeight () * 5 );
-	videoMediaType->SetUINT32 ( MF_MT_MPEG2_PROFILE, eAVEncH264VProfile_High );
+	videoMediaType->SetUINT32 ( MF_MT_MPEG2_PROFILE, eAVEncH264VProfile_Main );
 	videoMediaType->SetUINT32 ( MF_MT_INTERLACE_MODE, MFVideoInterlace_Progressive );
 	MFSetAttributeSize ( videoMediaType, MF_MT_FRAME_SIZE, _capturer->GetCapturedBitmap ()->GetWidth (), _capturer->GetCapturedBitmap ()->GetHeight () );
 	MFSetAttributeRatio ( videoMediaType, MF_MT_FRAME_RATE, fps, 1 );
