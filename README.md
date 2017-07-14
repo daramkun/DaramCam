@@ -11,6 +11,8 @@ Screen Capturing and Recording Library for Windows
 * Windows Imaging Components Image Generator (BMP, PNG, JPEG, TIFF)
 * Windows Imaging Components Video Generator (GIF)
 * Wave Audio Generator (WAV)
+* MPEG-4 Video (H.264) Generator (MP4, M4V) - External DLL, with Media Foundation
+* ADTS Audio (AAC) Generator (ADTS) - External DLL, with Media Foundation
 
 ## Will Supports
 ### Will Support Capturers
@@ -22,7 +24,6 @@ Screen Capturing and Recording Library for Windows
 ### Will Support Generators
 * Matroska Video (H.264) Generator (MKV)
 * Matroska Audio (AAC) Generator (MKA)
-* MPEG-4 Video (H.264) Generator (MP4, M4V)
 * MPEG-4 Audio (AAC) Generator (M4A)
 * MPEG-1 Layer-3 Audio Generator (MP3)
 * Opus Audio Generator (OPUS)
