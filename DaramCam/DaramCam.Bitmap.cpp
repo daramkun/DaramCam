@@ -1,7 +1,7 @@
 #include "DaramCam.h"
 #include "DaramCam.Internal.h"
 
-#pragma intrinsic(memcpy) 
+#pragma intrinsic(memcpy)
 
 DCBitmap::DCBitmap ( unsigned _width, unsigned _height, unsigned _colorDepth )
 	: byteArray ( nullptr )
@@ -16,13 +16,13 @@ DCBitmap::~DCBitmap ()
 	byteArray = nullptr;
 }
 
-unsigned char * DCBitmap::GetByteArray () { return byteArray; }
-unsigned DCBitmap::GetWidth () { return width; }
-unsigned DCBitmap::GetHeight () { return height; }
-unsigned DCBitmap::GetColorDepth () { return colorDepth; }
-unsigned DCBitmap::GetStride () { return stride; }
+unsigned char * DCBitmap::GetByteArray () noexcept { return byteArray; }
+unsigned DCBitmap::GetWidth () noexcept { return width; }
+unsigned DCBitmap::GetHeight () noexcept { return height; }
+unsigned DCBitmap::GetColorDepth () noexcept { return colorDepth; }
+unsigned DCBitmap::GetStride () noexcept { return stride; }
 
-unsigned DCBitmap::GetByteArraySize ()
+unsigned DCBitmap::GetByteArraySize () noexcept
 {
 	return colorDepth == 3 ? ( ( ( stride + 3 ) / 4 ) * 4 ) * height : stride * height;
 }

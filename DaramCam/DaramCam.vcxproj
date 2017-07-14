@@ -183,6 +183,7 @@
     <ClCompile Include="DaramCam.Bitmap.cpp" />
     <ClCompile Include="DaramCam.cpp" />
     <ClCompile Include="DaramCam.DXGIScreenCapturer.cpp" />
+    <ClCompile Include="DaramCam.DXGISwapChainCapturer.cpp" />
     <ClCompile Include="DaramCam.GDIScreenCapturer.cpp" />
     <ClCompile Include="DaramCam.Generator.cpp" />
     <ClCompile Include="DaramCam.Capturer.cpp" />

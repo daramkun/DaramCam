@@ -43,13 +43,16 @@ int main ( void )
 	else
 		hWnd = DCGetActiveWindowFromProcess ( process );*/
 
+	////////////////////////////////////////////////////////////////////////////////////////////////
+
 	///// Image Capture
-	/**
-	SHCreateStreamOnFileEx ( TEXT ( "Z:\\Test.png" ), STGM_READWRITE | STGM_CREATE, 0, false, 0, &stream );
 
 	//DCScreenCapturer * screenCapturer = new DCCreateGDIScreenCapturer ( hWnd );
 	//DCScreenCapturer * screenCapturer = DCCreateGDIScreenCapturer ( 0 );
 	DCScreenCapturer * screenCapturer = DCCreateDXGIScreenCapturer ( DCDXGIScreenCapturerRange_SubMonitors );
+
+	/**
+	SHCreateStreamOnFileEx ( TEXT ( "Z:\\Test.png" ), STGM_READWRITE | STGM_CREATE, 0, false, 0, &stream );
 	screenCapturer->Capture ();
 
 	DCImageGenerator * imgGen = DCCreateWICImageGenerator ( DCWICImageType_PNG );
@@ -60,7 +63,9 @@ int main ( void )
 	stream->Release ();
 
 	delete imgGen;
+	/**/
 
+	/**/
 	SHCreateStreamOnFileEx ( TEXT ( "Z:\\Test.mp4" ), STGM_READWRITE | STGM_CREATE, 0, false, 0, &stream );
 
 	//DCVideoGenerator * vidGen = DCCreateWICVideoGenerator ( WICVG_FRAMETICK_24FPS );
@@ -75,6 +80,8 @@ int main ( void )
 
 	delete screenCapturer;
 	/**/
+
+	////////////////////////////////////////////////////////////////////////////////////////////////
 
 	///// Audio Capture
 	/*
@@ -109,8 +116,10 @@ int main ( void )
 	delete audioCapturer;
 	/**/
 
+	////////////////////////////////////////////////////////////////////////////////////////////////
+
 	///// Audio and Video Capture
-	/**/
+	/**
 	SHCreateStreamOnFileEx ( TEXT ( "Z:\\Test.mp4" ), STGM_READWRITE | STGM_CREATE, 0, false, 0, &stream );
 	DCScreenCapturer * screenCapturer = DCCreateDXGIScreenCapturer ( DCDXGIScreenCapturerRange_SubMonitors );
 	DCAudioCapturer * audioCapturer = DCCreateWASAPILoopbackAudioCapturer ();

@@ -9,7 +9,7 @@ public:
 
 public:
 	virtual void Capture ();
-	virtual DCBitmap* GetCapturedBitmap ();
+	virtual DCBitmap* GetCapturedBitmap () noexcept;
 
 public:
 	void SetRegion ( const RECT * region = nullptr );
@@ -77,7 +77,7 @@ void DCGDIScreenCapturer::Capture ()
 	capturedBitmap.CopyFrom ( captureDC, captureBitmap );
 }
 
-DCBitmap * DCGDIScreenCapturer::GetCapturedBitmap () { return &capturedBitmap; }
+DCBitmap * DCGDIScreenCapturer::GetCapturedBitmap () noexcept { return &capturedBitmap; }
 
 void DCGDIScreenCapturer::SetRegion ( const RECT * _region )
 {

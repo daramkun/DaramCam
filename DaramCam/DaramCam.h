@@ -45,13 +45,13 @@ public:
 	~DCBitmap ();
 
 public:
-	unsigned char * GetByteArray ();
-	unsigned GetWidth ();
-	unsigned GetHeight ();
-	unsigned GetColorDepth ();
-	unsigned GetStride ();
+	unsigned char * GetByteArray () noexcept;
+	unsigned GetWidth () noexcept;
+	unsigned GetHeight () noexcept;
+	unsigned GetColorDepth () noexcept;
+	unsigned GetStride () noexcept;
 
-	unsigned GetByteArraySize ();
+	unsigned GetByteArraySize () noexcept;
 
 	IWICBitmap * ToWICBitmap ();
 
@@ -81,7 +81,7 @@ public:
 
 public:
 	virtual void Capture () = 0;
-	virtual DCBitmap * GetCapturedBitmap () = 0;
+	virtual DCBitmap * GetCapturedBitmap () noexcept = 0;
 };
 
 // Abstract Audio Capturer
@@ -94,12 +94,14 @@ public:
 	virtual void Begin () = 0;
 	virtual void End () = 0;
 
-	virtual unsigned GetChannels () = 0;
-	virtual unsigned GetBitsPerSample () = 0;
-	virtual unsigned GetSamplerate () = 0;
+	virtual unsigned GetChannels () noexcept = 0;
+	virtual unsigned GetBitsPerSample () noexcept = 0;
+	virtual unsigned GetSamplerate () noexcept = 0;
 
-	virtual unsigned GetByterate ();
+public:
+	virtual unsigned GetByterate () noexcept;
 
+public:
 	virtual void* GetAudioData ( unsigned * bufferLength ) = 0;
 };
 
@@ -163,6 +165,8 @@ enum DCDXGIScreenCapturerRange
 
 // DXGI Screen Capturer
 DARAMCAM_EXPORTS DCScreenCapturer* DCCreateDXGIScreenCapturer ( DCDXGIScreenCapturerRange range = DCDXGIScreenCapturerRange_Desktop );
+
+DARAMCAM_EXPORTS DCScreenCapturer* DCCreateDXGISwapChainCapturer ( IUnknown * dxgiSwapChain );
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////

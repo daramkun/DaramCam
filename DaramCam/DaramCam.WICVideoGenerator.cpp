@@ -155,7 +155,7 @@ DWORD WINAPI WICVG_Progress ( LPVOID vg )
 
 		piBitmapFrame->Release ();
 
-		Sleep ( 1 );
+		Sleep ( 0 );
 	}
 
 	piEncoder->Commit ();
@@ -203,7 +203,7 @@ DWORD WINAPI WICVG_Capturer ( LPVOID vg )
 			lastTick = currentTick;
 		}
 
-		Sleep ( 1 );
+		Sleep ( 0 );
 	}
 
 	return 0;

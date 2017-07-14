@@ -126,7 +126,7 @@ DWORD WINAPI MFVG_Progress2 ( LPVOID vg )
 
 			lastTick = currentTick;
 		}
-		Sleep ( 1 );
+		Sleep ( 0 );
 	}
 
 	videoGen->writingStarted = false;

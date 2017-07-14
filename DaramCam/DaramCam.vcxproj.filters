@@ -89,6 +89,9 @@
     <ClCompile Include="DaramCam.WaveAudioGenerator.cpp">
       <Filter>소스 파일\Generators\Audio Generators</Filter>
     </ClCompile>
+    <ClCompile Include="DaramCam.DXGISwapChainCapturer.cpp">
+      <Filter>소스 파일\Capturers\Screen Capturers</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="DaramCam.rc">

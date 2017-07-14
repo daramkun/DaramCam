@@ -5,7 +5,7 @@
 
 #include "External Libraries\DXGIManager\DXGIManager.h"
 
-#pragma intrinsic(memcpy) 
+#pragma intrinsic(memcpy)
 
 class DCDXGIScreenCapturer : public DCScreenCapturer
 {
@@ -15,7 +15,7 @@ public:
 
 public:
 	virtual void Capture ();
-	virtual DCBitmap * GetCapturedBitmap ();
+	virtual DCBitmap * GetCapturedBitmap () noexcept;
 
 private:
 	DXGIManager* dxgiManager;
@@ -60,10 +60,8 @@ DCDXGIScreenCapturer::~DCDXGIScreenCapturer ()
 
 void DCDXGIScreenCapturer::Capture ()
 {
-	RECT outputRect;
-	dxgiManager->GetOutputRect ( outputRect );
 	while ( FAILED ( dxgiManager->GetOutputBits ( capturedBitmap.GetByteArray () ) ) )
 		;
 }
 
-DCBitmap * DCDXGIScreenCapturer::GetCapturedBitmap () { return &capturedBitmap; }
+DCBitmap * DCDXGIScreenCapturer::GetCapturedBitmap () noexcept { return &capturedBitmap; }

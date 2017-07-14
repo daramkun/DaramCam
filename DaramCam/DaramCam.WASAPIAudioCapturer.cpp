@@ -12,10 +12,12 @@ public:
 	virtual void Begin ();
 	virtual void End ();
 
-	virtual unsigned GetChannels ();
-	virtual unsigned GetBitsPerSample ();
-	virtual unsigned GetSamplerate ();
+public:
+	virtual unsigned GetChannels () noexcept;
+	virtual unsigned GetBitsPerSample () noexcept;
+	virtual unsigned GetSamplerate () noexcept;
 
+public:
 	virtual void* GetAudioData ( unsigned * bufferLength );
 
 public:
@@ -165,9 +167,9 @@ void DCWASAPIAudioCapturer::End ()
 	pAudioClient->Stop ();
 }
 
-unsigned DCWASAPIAudioCapturer::GetChannels () { return pwfx->nChannels; }
-unsigned DCWASAPIAudioCapturer::GetBitsPerSample () { return pwfx->wBitsPerSample; }
-unsigned DCWASAPIAudioCapturer::GetSamplerate () { return pwfx->nSamplesPerSec; }
+unsigned DCWASAPIAudioCapturer::GetChannels () noexcept { return pwfx->nChannels; }
+unsigned DCWASAPIAudioCapturer::GetBitsPerSample () noexcept { return pwfx->wBitsPerSample; }
+unsigned DCWASAPIAudioCapturer::GetSamplerate () noexcept { return pwfx->nSamplesPerSec; }
 
 void * DCWASAPIAudioCapturer::GetAudioData ( unsigned * bufferLength )
 {

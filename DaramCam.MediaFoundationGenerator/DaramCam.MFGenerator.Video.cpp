@@ -13,6 +13,8 @@
 #include <concurrent_queue.h>
 #include <ppltasks.h>
 
+#pragma intrinsic(memcpy)
+
 struct MFVG_CONTAINER { DCBitmap * bitmapSource; UINT deltaTime; };
 
 class DCMFVideoGenerator : public DCVideoGenerator
@@ -76,8 +78,6 @@ DWORD WINAPI MFVG_Progress ( LPVOID vg )
 {
 	DCMFVideoGenerator * videoGen = ( DCMFVideoGenerator* ) vg;
 
-	HRESULT hr;
-
 	videoGen->sinkWriter->BeginWriting ();
 
 	MFTIME totalTime = 0;
@@ -104,13 +104,9 @@ DWORD WINAPI MFVG_Progress ( LPVOID vg )
 			buffer->SetCurrentLength ( bitmap->GetByteArraySize () );
 			BYTE * pbBuffer;
 			buffer->Lock ( &pbBuffer, nullptr, nullptr );
-			unsigned stride = bitmap->GetStride ();
-			for ( unsigned y = 0; y < bitmap->GetHeight (); ++y )
-			{
-				UINT offset1 = ( bitmap->GetHeight () - y - 1 ) * stride,
-					offset2 = y * stride;
-				RtlCopyMemory ( pbBuffer + offset1, bitmap->GetByteArray () + offset2, bitmap->GetStride () );
-			}
+			unsigned stride = bitmap->GetStride (), height = bitmap->GetHeight ();
+			for ( unsigned y = 0; y < height; ++y )
+				memcpy ( pbBuffer + ( ( bitmap->GetHeight () - y - 1 ) * stride ), bitmap->GetByteArray () + ( y * stride ), bitmap->GetStride () );
 			buffer->Unlock ();
 
 			sample->AddBuffer ( buffer );
@@ -123,7 +119,7 @@ DWORD WINAPI MFVG_Progress ( LPVOID vg )
 
 			lastTick = currentTick;
 		}
-		Sleep ( 1 );
+		Sleep ( 0 );
 	}
 
 	videoGen->sinkWriter->Flush ( videoGen->streamIndex );
