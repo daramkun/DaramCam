@@ -18,7 +18,6 @@ struct MFVG_CONTAINER { DCBitmap * bitmapSource; UINT deltaTime; };
 class DCMFVideoGenerator : public DCVideoGenerator
 {
 	friend DWORD WINAPI MFVG_Progress ( LPVOID vg );
-	friend DWORD WINAPI MFVG_Capturer ( LPVOID vg );
 public:
 	DCMFVideoGenerator ( DWORD containerFormat, DWORD videoFormat, unsigned frameTick );
 	virtual ~DCMFVideoGenerator ();
@@ -35,7 +34,7 @@ private:
 	DWORD containerFormat;
 	DWORD videoFormat;
 
-	HANDLE threadHandles [ 2 ];
+	HANDLE threadHandle;
 	bool threadRunning;
 
 	IMFMediaSink * mediaSink;
@@ -80,98 +79,54 @@ DWORD WINAPI MFVG_Progress ( LPVOID vg )
 	videoGen->sinkWriter->BeginWriting ();
 
 	MFTIME totalTime = 0;
-	unsigned flushDelta = 0;
-	while ( videoGen->threadRunning || !videoGen->capturedQueue.empty () )
-	{
-		if ( videoGen->capturedQueue.empty () )
-		{
-			Sleep ( 0 );
-			continue;
-		}
-
-		MFVG_CONTAINER container;
-		if ( !videoGen->capturedQueue.try_pop ( container ) )
-		{
-			Sleep ( 1 );
-			continue;
-		}
-
-		IMFSample * sample;
-		if ( FAILED ( MFCreateSample ( &sample ) ) )
-			continue;
-
-		sample->SetSampleFlags ( 0 );
-		sample->SetSampleTime ( totalTime );
-		MFTIME duration = container.deltaTime * 10000ULL;
-		sample->SetSampleDuration ( duration );
-		totalTime += duration;
-
-		IMFMediaBuffer * buffer;
-		if ( FAILED ( MFCreateMemoryBuffer ( container.bitmapSource->GetByteArraySize (), &buffer ) ) )
-			continue;
-		buffer->SetCurrentLength ( container.bitmapSource->GetByteArraySize () );
-		BYTE * pbBuffer;
-		buffer->Lock ( &pbBuffer, nullptr, nullptr );
-		unsigned stride = container.bitmapSource->GetStride ();
-		for ( unsigned y = 0; y < container.bitmapSource->GetHeight (); ++y )
-		{
-			UINT offset1 = ( container.bitmapSource->GetHeight () - y - 1 ) * stride,
-				 offset2 = y * stride;
-			RtlCopyMemory ( pbBuffer + offset1, container.bitmapSource->GetByteArray () + offset2, container.bitmapSource->GetStride () );
-		}
-		buffer->Unlock ();
-
-		if ( FAILED ( sample->AddBuffer ( buffer ) ) )
-			continue;
-
-		buffer->Release ();
-
-		if ( FAILED ( hr = videoGen->sinkWriter->WriteSample ( videoGen->streamIndex, sample ) ) )
-			continue;
-
-		sample->Release ();
-
-		delete container.bitmapSource;
-
-		if ( totalTime / 10000000ULL != flushDelta )
-		{
-			videoGen->sinkWriter->Flush ( videoGen->streamIndex );
-			flushDelta = totalTime / 10000000ULL;
-		}
-
-		Sleep ( 1 );
-	}
-
-	videoGen->sinkWriter->Finalize ();
-	videoGen->mediaSink->Shutdown ();
-
-	return 0;
-}
-
-DWORD WINAPI MFVG_Capturer ( LPVOID vg )
-{
-	DCMFVideoGenerator * videoGen = ( DCMFVideoGenerator* ) vg;
-
 	DWORD lastTick, currentTick;
 	lastTick = currentTick = timeGetTime ();
-	while ( videoGen->threadRunning )
+	while ( videoGen->threadRunning || !videoGen->capturedQueue.empty () )
 	{
 		if ( ( currentTick = timeGetTime () ) - lastTick >= videoGen->frameTick )
 		{
 			videoGen->capturer->Capture ();
 			DCBitmap * bitmap = videoGen->capturer->GetCapturedBitmap ();
 
-			MFVG_CONTAINER container;
-			container.deltaTime = currentTick - lastTick;
-			container.bitmapSource = bitmap->Clone ();
+			IMFSample * sample;
+			MFCreateSample ( &sample );
 
-			videoGen->capturedQueue.push ( container );
+			sample->SetSampleFlags ( 0 );
+			sample->SetSampleTime ( totalTime );
+			MFTIME duration = ( currentTick - lastTick ) * 10000ULL;
+			sample->SetSampleDuration ( duration );
+			totalTime += duration;
+
+			IMFMediaBuffer * buffer;
+			MFCreateMemoryBuffer ( bitmap->GetByteArraySize (), &buffer );
+			buffer->SetCurrentLength ( bitmap->GetByteArraySize () );
+			BYTE * pbBuffer;
+			buffer->Lock ( &pbBuffer, nullptr, nullptr );
+			unsigned stride = bitmap->GetStride ();
+			for ( unsigned y = 0; y < bitmap->GetHeight (); ++y )
+			{
+				UINT offset1 = ( bitmap->GetHeight () - y - 1 ) * stride,
+					offset2 = y * stride;
+				RtlCopyMemory ( pbBuffer + offset1, bitmap->GetByteArray () + offset2, bitmap->GetStride () );
+			}
+			buffer->Unlock ();
+
+			sample->AddBuffer ( buffer );
+
+			buffer->Release ();
+
+			videoGen->sinkWriter->WriteSample ( videoGen->streamIndex, sample );
+
+			sample->Release ();
 
 			lastTick = currentTick;
 		}
-
 		Sleep ( 1 );
 	}
+
+	videoGen->sinkWriter->Flush ( videoGen->streamIndex );
+	videoGen->sinkWriter->Finalize ();
+	videoGen->mediaSink->Shutdown ();
 
 	return 0;
 }
@@ -195,7 +150,7 @@ void DCMFVideoGenerator::Begin ( IStream * _stream, DCScreenCapturer * _capturer
 	MFSetAttributeRatio ( videoMediaType, MF_MT_FRAME_RATE, fps, 1 );
 	MFSetAttributeRatio ( videoMediaType, MF_MT_PIXEL_ASPECT_RATIO, 1, 1 );
 
-	if ( FAILED ( MFCreateFMPEG4MediaSink ( byteStream, videoMediaType, nullptr, &mediaSink ) ) )
+	if ( FAILED ( MFCreateMPEG4MediaSink ( byteStream, videoMediaType, nullptr, &mediaSink ) ) )
 		return;
 
 	videoMediaType->Release ();
@@ -226,14 +181,13 @@ void DCMFVideoGenerator::Begin ( IStream * _stream, DCScreenCapturer * _capturer
 	inputMediaType->Release ();
 
 	threadRunning = true;
-	threadHandles [ 0 ] = CreateThread ( nullptr, 0, MFVG_Progress, this, 0, nullptr );
-	threadHandles [ 1 ] = CreateThread ( nullptr, 0, MFVG_Capturer, this, 0, nullptr );
+	threadHandle = CreateThread ( nullptr, 0, MFVG_Progress, this, 0, nullptr );
 }
 
 void DCMFVideoGenerator::End ()
 {
 	threadRunning = false;
-	WaitForMultipleObjects ( 2, threadHandles, true, INFINITE );
+	WaitForSingleObject ( threadHandle, INFINITE );
 
 	sinkWriter->Release ();
 	mediaSink->Release ();

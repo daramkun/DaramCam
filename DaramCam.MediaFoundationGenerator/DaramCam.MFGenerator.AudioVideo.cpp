@@ -18,7 +18,6 @@ struct MFVG_CONTAINER { DCBitmap * bitmapSource; UINT deltaTime; };
 class DCMFAudioVideoGenerator : public DCAudioVideoGenerator
 {
 	friend DWORD WINAPI MFVG_Progress2 ( LPVOID vg );
-	friend DWORD WINAPI MFVG_Capturer2 ( LPVOID vg );
 	friend DWORD WINAPI MFAG_Progress2 ( LPVOID vg );
 public:
 	DCMFAudioVideoGenerator ( DWORD containerFormat, DWORD videoFormat, DWORD audioFormat, unsigned frameTick );
@@ -38,7 +37,7 @@ private:
 	DWORD videoFormat;
 	DWORD audioFormat;
 
-	HANDLE threadHandles [ 3 ];
+	HANDLE threadHandles [ 2 ];
 	bool threadRunning, writingStarted;
 
 	IMFMediaSink * mediaSink;
@@ -83,99 +82,55 @@ DWORD WINAPI MFVG_Progress2 ( LPVOID vg )
 	videoGen->writingStarted = true;
 
 	MFTIME totalTime = 0;
-	unsigned flushDelta = 0;
-	while ( videoGen->threadRunning || !videoGen->capturedQueue.empty () )
-	{
-		if ( videoGen->capturedQueue.empty () )
-		{
-			Sleep ( 0 );
-			continue;
-		}
-
-		MFVG_CONTAINER container;
-		if ( !videoGen->capturedQueue.try_pop ( container ) )
-		{
-			Sleep ( 1 );
-			continue;
-		}
-
-		IMFSample * sample;
-		if ( FAILED ( MFCreateSample ( &sample ) ) )
-			continue;
-
-		sample->SetSampleFlags ( 0 );
-		sample->SetSampleTime ( totalTime );
-		MFTIME duration = container.deltaTime * 10000ULL;
-		sample->SetSampleDuration ( duration );
-		totalTime += duration;
-
-		IMFMediaBuffer * buffer;
-		if ( FAILED ( MFCreateMemoryBuffer ( container.bitmapSource->GetByteArraySize (), &buffer ) ) )
-			continue;
-		buffer->SetCurrentLength ( container.bitmapSource->GetByteArraySize () );
-		BYTE * pbBuffer;
-		buffer->Lock ( &pbBuffer, nullptr, nullptr );
-		unsigned stride = container.bitmapSource->GetStride ();
-		for ( unsigned y = 0; y < container.bitmapSource->GetHeight (); ++y )
-		{
-			UINT offset1 = ( container.bitmapSource->GetHeight () - y - 1 ) * stride,
-				offset2 = y * stride;
-			RtlCopyMemory ( pbBuffer + offset1, container.bitmapSource->GetByteArray () + offset2, container.bitmapSource->GetStride () );
-		}
-		buffer->Unlock ();
-
-		if ( FAILED ( sample->AddBuffer ( buffer ) ) )
-			continue;
-
-		buffer->Release ();
-
-		if ( FAILED ( videoGen->sinkWriter->WriteSample ( videoGen->videoStreamIndex, sample ) ) )
-			continue;
-
-		sample->Release ();
-
-		delete container.bitmapSource;
-
-		if ( totalTime / 10000000ULL != flushDelta )
-		{
-			videoGen->sinkWriter->Flush ( videoGen->videoStreamIndex );
-			flushDelta = totalTime / 10000000ULL;
-		}
-
-		Sleep ( 1 );
-	}
-
-	videoGen->writingStarted = false;
-	videoGen->sinkWriter->Finalize ();
-	videoGen->mediaSink->Shutdown ();
-
-	return 0;
-}
-
-DWORD WINAPI MFVG_Capturer2 ( LPVOID vg )
-{
-	DCMFAudioVideoGenerator * videoGen = ( DCMFAudioVideoGenerator* ) vg;
-
 	DWORD lastTick, currentTick;
 	lastTick = currentTick = timeGetTime ();
-	while ( videoGen->threadRunning )
+	while ( videoGen->threadRunning || !videoGen->capturedQueue.empty () )
 	{
 		if ( ( currentTick = timeGetTime () ) - lastTick >= videoGen->frameTick )
 		{
 			videoGen->videoCapturer->Capture ();
 			DCBitmap * bitmap = videoGen->videoCapturer->GetCapturedBitmap ();
 
-			MFVG_CONTAINER container;
-			container.deltaTime = currentTick - lastTick;
-			container.bitmapSource = bitmap->Clone ();
+			IMFSample * sample;
+			MFCreateSample ( &sample );
 
-			videoGen->capturedQueue.push ( container );
+			sample->SetSampleFlags ( 0 );
+			sample->SetSampleTime ( totalTime );
+			MFTIME duration = ( currentTick - lastTick ) * 10000ULL;
+			sample->SetSampleDuration ( duration );
+			totalTime += duration;
+
+			IMFMediaBuffer * buffer;
+			MFCreateMemoryBuffer ( bitmap->GetByteArraySize (), &buffer );
+			buffer->SetCurrentLength ( bitmap->GetByteArraySize () );
+			BYTE * pbBuffer;
+			buffer->Lock ( &pbBuffer, nullptr, nullptr );
+			unsigned stride = bitmap->GetStride ();
+			for ( unsigned y = 0; y < bitmap->GetHeight (); ++y )
+			{
+				UINT offset1 = ( bitmap->GetHeight () - y - 1 ) * stride,
+					offset2 = y * stride;
+				RtlCopyMemory ( pbBuffer + offset1, bitmap->GetByteArray () + offset2, bitmap->GetStride () );
+			}
+			buffer->Unlock ();
+
+			sample->AddBuffer ( buffer );
+
+			buffer->Release ();
+
+			videoGen->sinkWriter->WriteSample ( videoGen->videoStreamIndex, sample );
+
+			sample->Release ();
 
 			lastTick = currentTick;
 		}
-
 		Sleep ( 1 );
 	}
+
+	videoGen->writingStarted = false;
+	videoGen->sinkWriter->Flush ( videoGen->videoStreamIndex );
+	videoGen->sinkWriter->Finalize ();
+	videoGen->mediaSink->Shutdown ();
 
 	return 0;
 }
@@ -191,7 +146,6 @@ DWORD WINAPI MFAG_Progress2 ( LPVOID vg )
 	HRESULT hr;
 
 	MFTIME totalDuration = 0;
-	unsigned flushDelta = 0;
 	while ( audioGen->threadRunning && audioGen->writingStarted )
 	{
 		unsigned bufferLength;
@@ -205,7 +159,7 @@ DWORD WINAPI MFAG_Progress2 ( LPVOID vg )
 
 		sample->SetSampleFlags ( 0 );
 		sample->SetSampleTime ( totalDuration );
-		MFTIME duration = ( bufferLength / ( audioGen->audioCapturer->GetByterate () ) ) * 10000ULL;
+		MFTIME duration = ( bufferLength * 10000000ULL ) / audioGen->audioCapturer->GetByterate ();
 		sample->SetSampleDuration ( duration );
 		totalDuration += duration;
 
@@ -227,12 +181,6 @@ DWORD WINAPI MFAG_Progress2 ( LPVOID vg )
 			continue;
 
 		sample->Release ();
-
-		if ( totalDuration / 10000000ULL != flushDelta )
-		{
-			audioGen->sinkWriter->Flush ( audioGen->audioStreamIndex );
-			flushDelta = totalDuration / 10000000ULL;
-		}
 	}
 	audioGen->audioCapturer->End ();
 
@@ -318,14 +266,13 @@ void DCMFAudioVideoGenerator::Begin ( IStream * _stream, DCScreenCapturer * _vid
 	threadRunning = true;
 	writingStarted = false;
 	threadHandles [ 0 ] = CreateThread ( nullptr, 0, MFVG_Progress2, this, 0, nullptr );
-	threadHandles [ 1 ] = CreateThread ( nullptr, 0, MFVG_Capturer2, this, 0, nullptr );
-	threadHandles [ 2 ] = CreateThread ( nullptr, 0, MFAG_Progress2, this, 0, nullptr );
+	threadHandles [ 1 ] = CreateThread ( nullptr, 0, MFAG_Progress2, this, 0, nullptr );
 }
 
 void DCMFAudioVideoGenerator::End ()
 {
 	threadRunning = false;
-	WaitForMultipleObjects ( 3, threadHandles, true, INFINITE );
+	WaitForMultipleObjects ( 2, threadHandles, true, INFINITE );
 
 	sinkWriter->Release ();
 	mediaSink->Release ();

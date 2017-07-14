@@ -72,7 +72,6 @@ DWORD WINAPI MFAG_Progress ( LPVOID vg )
 	HRESULT hr;
 
 	MFTIME totalDuration = 0;
-	unsigned flushDelta = 0;
 	while ( audioGen->threadRunning )
 	{
 		unsigned bufferLength;
@@ -81,43 +80,34 @@ DWORD WINAPI MFAG_Progress ( LPVOID vg )
 			continue;
 
 		IMFSample * sample;
-		if ( FAILED ( hr = MFCreateSample ( &sample ) ) )
-			continue;
+		MFCreateSample ( &sample );
 
 		sample->SetSampleFlags ( 0 );
 		sample->SetSampleTime ( totalDuration );
-		MFTIME duration = ( bufferLength / ( audioGen->capturer->GetByterate () ) ) * 10000ULL;
+		MFTIME duration = ( bufferLength * 10000000ULL ) / audioGen->capturer->GetByterate ();
 		sample->SetSampleDuration ( duration );
 		totalDuration += duration;
 
 		IMFMediaBuffer * buffer;
-		if ( FAILED ( hr = MFCreateMemoryBuffer ( bufferLength, &buffer ) ) )
-			continue;
+		MFCreateMemoryBuffer ( bufferLength, &buffer );
 		buffer->SetCurrentLength ( bufferLength );
 		BYTE * pbBuffer;
 		buffer->Lock ( &pbBuffer, nullptr, nullptr );
 		RtlCopyMemory ( pbBuffer, data, bufferLength );
 		buffer->Unlock ();
 
-		if ( FAILED ( hr = sample->AddBuffer ( buffer ) ) )
-			continue;
+		sample->AddBuffer ( buffer );
 
 		buffer->Release ();
 
-		if ( FAILED ( hr = audioGen->sinkWriter->WriteSample ( audioGen->streamIndex, sample ) ) )
-			continue;
+		audioGen->sinkWriter->WriteSample ( audioGen->streamIndex, sample );
 
 		sample->Release ();
-
-		if ( totalDuration / 10000000ULL != flushDelta )
-		{
-			audioGen->sinkWriter->Flush ( audioGen->streamIndex );
-			flushDelta = totalDuration / 10000000ULL;
-		}
 
 		Sleep ( 1 );
 	}
 
+	audioGen->sinkWriter->Flush ( audioGen->streamIndex );
 	audioGen->sinkWriter->Finalize ();
 	audioGen->capturer->End ();
 
@@ -146,7 +136,7 @@ void DCMFAudioGenerator::Begin ( IStream * _stream, DCAudioCapturer * _capturer 
 	audioMediaType->SetUINT32 ( MF_MT_AUDIO_AVG_BYTES_PER_SECOND, 24000 );
 	audioMediaType->SetUINT32 ( MF_MT_AAC_PAYLOAD_TYPE, 0 );
 
-	if ( FAILED ( hr = MFCreateFMPEG4MediaSink ( byteStream, nullptr, audioMediaType, &mediaSink ) ) )
+	if ( FAILED ( hr = MFCreateMPEG4MediaSink ( byteStream, nullptr, audioMediaType, &mediaSink ) ) )
 	//if ( FAILED ( hr = MFCreateADTSMediaSink ( byteStream, audioMediaType, &mediaSink ) ) )
 		return;
 

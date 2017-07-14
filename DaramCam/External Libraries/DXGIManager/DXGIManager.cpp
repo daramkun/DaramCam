@@ -421,7 +421,7 @@ HRESULT DXGIManager::GetOutputBits(BYTE* pBits )
 					DWORD dwStripe = dwWidth*4;
 					for(DWORD i=0; i<dwHeight; ++i)
 					{
-						memcpy_s(pBuf + (rcDesktop.left + (i + rcDesktop.top)*dwOutputWidth)*4, dwStripe, map.pBits + i*map.Pitch, dwStripe);
+						memcpy(pBuf + (rcDesktop.left + (i + rcDesktop.top)*dwOutputWidth)*4, map.pBits + i*map.Pitch, dwStripe);
 					}
 				}
 				break;
@@ -477,7 +477,7 @@ HRESULT DXGIManager::GetOutputBits(BYTE* pBits )
 	if(FAILED(hr))
 		return hr;
 
-	DrawMousePointer(pBuf, rcOutput, rcOutput);
+	//DrawMousePointer(pBuf, rcOutput, rcOutput);
 	
 	return hr;
 }
