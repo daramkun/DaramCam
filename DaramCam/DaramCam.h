@@ -56,6 +56,12 @@ public:
 	IWICBitmap * ToWICBitmap ();
 
 public:
+	bool GetIsDirectMode () noexcept;
+	void SetIsDirectMode ( bool mode ) noexcept;
+
+	void SetDirectBuffer ( void * buffer ) noexcept;
+
+public:
 	void Resize ( unsigned width, unsigned height, unsigned colorDepth = 3 );
 
 public:
@@ -65,12 +71,13 @@ public:
 public:
 	DCBitmap * Clone ();
 
-	void CopyFrom ( HDC hDC, HBITMAP hBitmap );
+	void CopyFrom ( HDC hDC, HBITMAP hBitmap, bool reverse = false );
 	bool CopyFrom ( IWICBitmapSource * wicBitmapSource );
 
 private:
 	unsigned char * byteArray;
 	unsigned width, height, colorDepth, stride;
+	bool directMode;
 };
 
 // Abstract Screen Capturer
@@ -80,7 +87,7 @@ public:
 	virtual ~DCScreenCapturer ();
 
 public:
-	virtual void Capture () noexcept = 0;
+	virtual void Capture ( bool reverse = false ) noexcept = 0;
 	virtual DCBitmap * GetCapturedBitmap () noexcept = 0;
 };
 

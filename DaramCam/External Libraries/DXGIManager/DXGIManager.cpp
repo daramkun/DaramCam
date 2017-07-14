@@ -367,7 +367,7 @@ HRESULT DXGIManager::GetOutputRect(RECT& rc)
 	return S_OK;
 }
 
-HRESULT DXGIManager::GetOutputBits(BYTE* pBits )
+HRESULT DXGIManager::GetOutputBits(BYTE* pBits, bool reverse )
 {
 	HRESULT hr = S_OK;
 
@@ -421,7 +421,7 @@ HRESULT DXGIManager::GetOutputBits(BYTE* pBits )
 					DWORD dwStripe = dwWidth*4;
 					for(DWORD i=0; i<dwHeight; ++i)
 					{
-						memcpy(pBuf + (rcDesktop.left + (i + rcDesktop.top)*dwOutputWidth)*4, map.pBits + i*map.Pitch, dwStripe);
+						memcpy(pBuf + (rcDesktop.left + (i + rcDesktop.top)*dwOutputWidth)*4, map.pBits + (reverse ? dwHeight - i - 1 : i)*map.Pitch, dwStripe);
 					}
 				}
 				break;
@@ -434,7 +434,7 @@ HRESULT DXGIManager::GetOutputBits(BYTE* pBits )
 					{
 						for( DWORD i=0; i<dwWidth; ++i)
 						{
-							*(pDst + (rcDesktop.left + (j + rcDesktop.top)*dwOutputWidth) + i) = *(pSrc + j + dwMapPitchPixels*(dwWidth - i - 1));
+							*(pDst + (rcDesktop.left + (j + rcDesktop.top)*dwOutputWidth) + i) = *(pSrc + (reverse ? dwHeight - j - 1 : j) + dwMapPitchPixels*(dwWidth - i - 1));
 						}
 					}
 				}
@@ -448,7 +448,7 @@ HRESULT DXGIManager::GetOutputBits(BYTE* pBits )
 					{
 						for( DWORD i=0; i<dwWidth; ++i)
 						{
-							*(pDst + (rcDesktop.left + (j + rcDesktop.top)*dwOutputWidth) + i) = *(pSrc + (dwWidth - i - 1) + dwMapPitchPixels*(dwHeight - j - 1));
+							*(pDst + (rcDesktop.left + (j + rcDesktop.top)*dwOutputWidth) + i) = *(pSrc + (dwWidth - i - 1) + dwMapPitchPixels*(reverse ? j : (dwHeight - j - 1)));
 						}
 					}
 				}
@@ -462,7 +462,7 @@ HRESULT DXGIManager::GetOutputBits(BYTE* pBits )
 					{
 						for( DWORD i=0; i<dwWidth; ++i)
 						{
-							*(pDst + (rcDesktop.left + (j + rcDesktop.top)*dwOutputWidth) + i) = *(pSrc + (dwHeight - j - 1) + dwMapPitchPixels*i);
+							*(pDst + (rcDesktop.left + (j + rcDesktop.top)*dwOutputWidth) + i) = *(pSrc + (reverse ? j : (dwHeight - j - 1)) + dwMapPitchPixels*i);
 						}
 					}
 				}

@@ -76,6 +76,7 @@ DWORD WINAPI MFVG_Progress ( LPVOID vg )
 	DCMFVideoGenerator * videoGen = ( DCMFVideoGenerator* ) vg;
 
 	DCBitmap * bitmap = videoGen->capturer->GetCapturedBitmap ();
+	bitmap->SetIsDirectMode ( true );
 	unsigned stride = bitmap->GetStride (), height = bitmap->GetHeight ();
 
 	IMFSample * sample;
@@ -93,8 +94,6 @@ DWORD WINAPI MFVG_Progress ( LPVOID vg )
 	{
 		if ( ( currentTick = timeGetTime () ) - lastTick >= videoGen->frameTick )
 		{
-			videoGen->capturer->Capture ();
-
 			sample->SetSampleFlags ( 0 );
 			sample->SetSampleTime ( totalTime );
 			MFTIME duration = ( currentTick - lastTick ) * 10000ULL;
@@ -104,8 +103,7 @@ DWORD WINAPI MFVG_Progress ( LPVOID vg )
 			buffer->SetCurrentLength ( bitmap->GetByteArraySize () );
 			BYTE * pbBuffer;
 			buffer->Lock ( &pbBuffer, nullptr, nullptr );
-			for ( unsigned y = 0; y < height; ++y )
-				memcpy ( pbBuffer + ( ( height - y - 1 ) * stride ), bitmap->GetByteArray () + ( y * stride ), stride );
+			videoGen->capturer->Capture ( true );
 			buffer->Unlock ();
 
 			videoGen->sinkWriter->WriteSample ( videoGen->streamIndex, sample );
@@ -121,6 +119,8 @@ DWORD WINAPI MFVG_Progress ( LPVOID vg )
 	videoGen->sinkWriter->Flush ( videoGen->streamIndex );
 	videoGen->sinkWriter->Finalize ();
 	videoGen->mediaSink->Shutdown ();
+
+	bitmap->SetIsDirectMode ( false );
 
 	return 0;
 }

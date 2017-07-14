@@ -11,7 +11,7 @@ DCBitmap::DCBitmap ( unsigned _width, unsigned _height, unsigned _colorDepth )
 
 DCBitmap::~DCBitmap ()
 {
-	if ( byteArray )
+	if ( byteArray && !directMode )
 		delete [] byteArray;
 	byteArray = nullptr;
 }
@@ -36,15 +36,48 @@ IWICBitmap * DCBitmap::ToWICBitmap ()
 	return bitmap;
 }
 
+bool DCBitmap::GetIsDirectMode () noexcept
+{
+	return directMode;
+}
+
+void DCBitmap::SetIsDirectMode ( bool mode ) noexcept
+{
+	if ( mode && !directMode )
+	{
+		if ( byteArray )
+			delete [] byteArray;
+		byteArray = nullptr;
+	}
+	else if ( !mode && directMode )
+	{
+		byteArray = new unsigned char [ GetByteArraySize () ];
+	}
+	directMode = mode;
+}
+
+void DCBitmap::SetDirectBuffer ( void * buffer ) noexcept
+{
+	if ( !directMode ) return;
+	byteArray = ( unsigned char * ) buffer;
+}
+
 void DCBitmap::Resize ( unsigned _width, unsigned _height, unsigned _colorDepth )
 {
 	if ( _width == width && _height == _height && colorDepth == _colorDepth ) return;
-	if ( byteArray ) delete [] byteArray;
-	if ( ( _width == 0 && _height == 0 ) || ( _colorDepth != 3 && _colorDepth != 4 ) ) { byteArray = nullptr; return; }
+	if ( byteArray && !directMode )
+		delete [] byteArray;
+	byteArray = nullptr;
+	if ( ( _width == 0 && _height == 0 ) || ( _colorDepth != 3 && _colorDepth != 4 ) )
+	{
+		byteArray = nullptr;
+		return;
+	}
 
 	width = _width; height = _height; colorDepth = _colorDepth;
 	stride = colorDepth == 3 ? ( _width * ( colorDepth * 8 ) + 7 ) / 8 : width * colorDepth;
-	byteArray = new unsigned char [ GetByteArraySize () ];
+	if ( !directMode )
+		byteArray = new unsigned char [ GetByteArraySize () ];
 }
 
 COLORREF DCBitmap::GetColorRef ( unsigned x, unsigned y )
@@ -66,7 +99,7 @@ DCBitmap * DCBitmap::Clone ()
 	return ret;
 }
 
-void DCBitmap::CopyFrom ( HDC hDC, HBITMAP hBitmap )
+void DCBitmap::CopyFrom ( HDC hDC, HBITMAP hBitmap, bool reverse )
 {
 	BITMAPINFO bmpInfo = { 0, };
 	bmpInfo.bmiHeader.biSize = sizeof ( BITMAPINFOHEADER );
@@ -76,7 +109,7 @@ void DCBitmap::CopyFrom ( HDC hDC, HBITMAP hBitmap )
 	bmpInfo.bmiHeader.biBitCount = 24;
 	bmpInfo.bmiHeader.biCompression = BI_RGB;
 	for ( unsigned i = 0; i < height; ++i )
-		GetDIBits ( hDC, hBitmap, i, 1, ( byteArray + ( ( height - 1 - i ) * stride ) ), &bmpInfo, DIB_RGB_COLORS );
+		GetDIBits ( hDC, hBitmap, i, 1, ( byteArray + ( ( reverse ? i : ( height - 1 - i ) ) * stride ) ), &bmpInfo, DIB_RGB_COLORS );
 }
 bool DCBitmap::CopyFrom ( IWICBitmapSource * wicBitmapSource )
 {

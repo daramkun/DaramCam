@@ -9,7 +9,7 @@ public:
 	virtual ~DCDXGISwapChainCapturer ();
 
 public:
-	virtual void Capture () noexcept;
+	virtual void Capture ( bool reverse = false ) noexcept;
 	virtual DCBitmap * GetCapturedBitmap () noexcept;
 
 private:
@@ -45,13 +45,20 @@ DCDXGISwapChainCapturer::~DCDXGISwapChainCapturer ()
 	dxgiSwapChain->Release ();
 }
 
-void DCDXGISwapChainCapturer::Capture () noexcept
+void DCDXGISwapChainCapturer::Capture ( bool reverse ) noexcept
 {
 	IDXGISurface * surface;
 	dxgiSwapChain->GetBuffer ( 0, __uuidof ( IDXGISurface ), ( void ** ) &surface );
 	DXGI_MAPPED_RECT locked;
 	surface->Map ( &locked, 0 );
-	memcpy ( capturedBitmap.GetByteArray (), locked.pBits, capturedBitmap.GetByteArraySize () );
+	if ( !reverse )
+		memcpy ( capturedBitmap.GetByteArray (), locked.pBits, capturedBitmap.GetByteArraySize () );
+	else
+	{
+		unsigned height = capturedBitmap.GetHeight (), stride = capturedBitmap.GetStride ();
+		for ( int y = 0; y < height; ++y )
+			memcpy ( capturedBitmap.GetByteArray () + ( y * stride ), locked.pBits + ( ( height - y - 1 ) * stride ), stride );
+	}
 	surface->Unmap ();
 }
 

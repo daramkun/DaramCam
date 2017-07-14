@@ -8,7 +8,7 @@ public:
 	virtual ~DCGDIScreenCapturer ();
 
 public:
-	virtual void Capture () noexcept;
+	virtual void Capture ( bool reverse = false ) noexcept;
 	virtual DCBitmap* GetCapturedBitmap () noexcept;
 
 public:
@@ -58,7 +58,7 @@ DCGDIScreenCapturer::~DCGDIScreenCapturer ()
 	ReleaseDC ( hWnd, desktopDC );
 }
 
-void DCGDIScreenCapturer::Capture () noexcept
+void DCGDIScreenCapturer::Capture ( bool reverse ) noexcept
 {
 	HBITMAP oldBitmap = ( HBITMAP ) SelectObject ( captureDC, captureBitmap );
 	if ( captureRegion == nullptr )
@@ -74,7 +74,7 @@ void DCGDIScreenCapturer::Capture () noexcept
 	}
 	SelectObject ( captureDC, oldBitmap );
 	
-	capturedBitmap.CopyFrom ( captureDC, captureBitmap );
+	capturedBitmap.CopyFrom ( captureDC, captureBitmap, reverse );
 }
 
 DCBitmap * DCGDIScreenCapturer::GetCapturedBitmap () noexcept { return &capturedBitmap; }
