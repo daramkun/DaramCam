@@ -44,7 +44,7 @@ int main ( void )
 		hWnd = DCGetActiveWindowFromProcess ( process );*/
 
 	///// Image Capture
-	/*
+	/**
 	SHCreateStreamOnFileEx ( TEXT ( "Z:\\Test.png" ), STGM_READWRITE | STGM_CREATE, 0, false, 0, &stream );
 
 	//DCScreenCapturer * screenCapturer = new DCCreateGDIScreenCapturer ( hWnd );
@@ -91,7 +91,7 @@ int main ( void )
 	scanf ( "%d", &selected );
 
 	DCAudioCapturer * audioCapturer = DCCreateWASAPIAudioCapturer ( devices [ selected ] );/**/
-	/**/
+	/**
 	DCAudioCapturer * audioCapturer = DCCreateWASAPILoopbackAudioCapturer ();
 	
 	//SHCreateStreamOnFileEx ( TEXT ( "Z:\\Test.adts" ), STGM_READWRITE | STGM_CREATE, 0, false, 0, &stream );
@@ -110,7 +110,7 @@ int main ( void )
 	/**/
 
 	///// Audio and Video Capture
-	/*
+	/**/
 	SHCreateStreamOnFileEx ( TEXT ( "Z:\\Test.mp4" ), STGM_READWRITE | STGM_CREATE, 0, false, 0, &stream );
 	DCScreenCapturer * screenCapturer = DCCreateDXGIScreenCapturer ( DCDXGIScreenCapturerRange_SubMonitors );
 	DCAudioCapturer * audioCapturer = DCCreateWASAPILoopbackAudioCapturer ();

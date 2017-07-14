@@ -220,7 +220,7 @@ void DCMFAudioVideoGenerator::Begin ( IStream * _stream, DCScreenCapturer * _vid
 	audioMediaType->SetUINT32 ( MF_MT_AUDIO_AVG_BYTES_PER_SECOND, 24000 );
 	audioMediaType->SetUINT32 ( MF_MT_AAC_PAYLOAD_TYPE, 0 );
 
-	if ( FAILED ( MFCreateFMPEG4MediaSink ( byteStream, videoMediaType, audioMediaType, &mediaSink ) ) )
+	if ( FAILED ( MFCreateMPEG4MediaSink ( byteStream, videoMediaType, audioMediaType, &mediaSink ) ) )
 		return;
 
 	audioMediaType->Release ();
