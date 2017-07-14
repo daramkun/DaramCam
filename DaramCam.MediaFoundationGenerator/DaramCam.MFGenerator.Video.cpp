@@ -110,7 +110,7 @@ DWORD WINAPI MFVG_Progress ( LPVOID vg )
 
 			lastTick = currentTick;
 		}
-		Sleep ( 0 );
+		//Sleep ( 0 );
 	}
 
 	buffer->Release ();

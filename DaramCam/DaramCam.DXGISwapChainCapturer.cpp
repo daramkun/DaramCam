@@ -56,7 +56,7 @@ void DCDXGISwapChainCapturer::Capture ( bool reverse ) noexcept
 	else
 	{
 		unsigned height = capturedBitmap.GetHeight (), stride = capturedBitmap.GetStride ();
-		for ( int y = 0; y < height; ++y )
+		for ( unsigned y = 0; y < height; ++y )
 			memcpy ( capturedBitmap.GetByteArray () + ( y * stride ), locked.pBits + ( ( height - y - 1 ) * stride ), stride );
 	}
 	surface->Unmap ();

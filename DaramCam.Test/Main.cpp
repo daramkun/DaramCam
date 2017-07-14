@@ -130,6 +130,8 @@ int main ( void )
 	Sleep ( 10000 );
 	audvidGen->End ();
 
+	delete audvidGen;
+
 	delete audioCapturer;
 	delete screenCapturer;/**/
 
