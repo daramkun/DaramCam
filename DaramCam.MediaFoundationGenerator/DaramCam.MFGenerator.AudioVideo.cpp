@@ -88,7 +88,8 @@ DWORD WINAPI MFVG_Progress2 ( LPVOID vg )
 	sample->AddBuffer ( buffer );
 
 	videoGen->sinkWriter->BeginWriting ();
-	videoGen->writingStarted = true;
+	printf ( "Start of Video Capture.\n" );
+	videoGen->threadHandles [ 1 ] = CreateThread ( nullptr, 0, MFAG_Progress2, vg, 0, nullptr );
 
 	MFTIME totalTime = 0;
 	DWORD lastTick, currentTick;
@@ -111,6 +112,7 @@ DWORD WINAPI MFVG_Progress2 ( LPVOID vg )
 			buffer->Unlock ();
 
 			videoGen->sinkWriter->WriteSample ( videoGen->videoStreamIndex, sample );
+			//printf ( "Video Duration: %lf\n", totalTime / 10000000.0f );
 
 			lastTick = currentTick;
 		}
@@ -120,10 +122,15 @@ DWORD WINAPI MFVG_Progress2 ( LPVOID vg )
 	buffer->Release ();
 	sample->Release ();
 
-	videoGen->writingStarted = false;
-	videoGen->sinkWriter->Flush ( videoGen->videoStreamIndex );
+	//videoGen->writingStarted = false;
+	printf ( "End of Video Capture.\n" );
+	WaitForSingleObject ( videoGen->threadHandles [ 1 ], INFINITE );
+	//videoGen->sinkWriter->Flush ( videoGen->videoStreamIndex );
+	//printf ( "Flush Videos.\n" );
 	videoGen->sinkWriter->Finalize ();
+	printf ( "Sink Writer Finalized.\n" );
 	videoGen->mediaSink->Shutdown ();
+	printf ( "Sink Shutdowned.\n" );
 
 	bitmap->SetIsDirectMode ( false );
 
@@ -134,7 +141,8 @@ DWORD WINAPI MFAG_Progress2 ( LPVOID vg )
 {
 	DCMFAudioVideoGenerator * audioGen = ( DCMFAudioVideoGenerator* ) vg;
 
-	while ( !audioGen->writingStarted );
+	//while ( audioGen->writingStarted == false )
+	//	;
 
 	IMFSample * sample;
 	MFCreateSample ( &sample );
@@ -143,20 +151,31 @@ DWORD WINAPI MFAG_Progress2 ( LPVOID vg )
 	sample->AddBuffer ( buffer );
 
 	audioGen->audioCapturer->Begin ();
+	printf ( "Start of Audio Capture.\n" );
 
 	MFTIME totalDuration = 0;
-	while ( audioGen->threadRunning && audioGen->writingStarted )
+	DWORD lastTick, currentTick;
+	lastTick = currentTick = timeGetTime ();
+	bool nullBuffer = false;
+	while ( audioGen->threadRunning/* && audioGen->writingStarted*/ )
 	{
+		currentTick = timeGetTime ();
+
 		unsigned bufferLength;
 		void * data = audioGen->audioCapturer->GetAudioData ( &bufferLength );
-		if ( data == nullptr || bufferLength == 0 )
+		if ( data == nullptr )
+		{
+			printf ( "Audio data is null.\n" );
 			continue;
+		}
 
 		sample->SetSampleFlags ( 0 );
-		sample->SetSampleTime ( totalDuration );
 		MFTIME duration = ( bufferLength * 10000000ULL ) / audioGen->audioCapturer->GetByterate ();
+		MFTIME temp = ( currentTick - lastTick ) * 10000ULL;
 		sample->SetSampleDuration ( duration );
-		totalDuration += duration;
+		sample->SetSampleTime ( totalDuration );
+		totalDuration += duration + ( temp - duration );
+		printf ( "temp: %ld, duration: %ld, temp - duration: %ld.\n", temp, duration, temp - duration );
 
 		buffer->SetCurrentLength ( bufferLength );
 		BYTE * pbBuffer;
@@ -165,6 +184,12 @@ DWORD WINAPI MFAG_Progress2 ( LPVOID vg )
 		buffer->Unlock ();
 
 		audioGen->sinkWriter->WriteSample ( audioGen->audioStreamIndex, sample );
+		//printf ( "Audio Duration: %lf\n", totalDuration / 10000000.0f );
+
+		lastTick = currentTick;
+		if ( nullBuffer )
+			delete [] ( BYTE* ) data;
+		nullBuffer = false;
 
 		Sleep ( 0 );
 	}
@@ -172,7 +197,11 @@ DWORD WINAPI MFAG_Progress2 ( LPVOID vg )
 	buffer->Release ();
 	sample->Release ();
 
+	//audioGen->sinkWriter->Flush ( audioGen->audioStreamIndex );
+	//printf ( "Flush Audios.\n" );
+
 	audioGen->audioCapturer->End ();
+	printf ( "End of Audio Capture.\n" );
 
 	return 0;
 }
@@ -256,13 +285,13 @@ void DCMFAudioVideoGenerator::Begin ( IStream * _stream, DCScreenCapturer * _vid
 	threadRunning = true;
 	writingStarted = false;
 	threadHandles [ 0 ] = CreateThread ( nullptr, 0, MFVG_Progress2, this, 0, nullptr );
-	threadHandles [ 1 ] = CreateThread ( nullptr, 0, MFAG_Progress2, this, 0, nullptr );
 }
 
 void DCMFAudioVideoGenerator::End ()
 {
 	threadRunning = false;
-	WaitForMultipleObjects ( 2, threadHandles, true, INFINITE );
+	//WaitForMultipleObjects ( 1, threadHandles, true, INFINITE );
+	WaitForSingleObject ( threadHandles [ 0 ], INFINITE );
 
 	sinkWriter->Release ();
 	mediaSink->Release ();

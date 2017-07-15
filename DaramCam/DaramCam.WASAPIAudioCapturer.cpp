@@ -179,6 +179,8 @@ void * DCWASAPIAudioCapturer::GetAudioData ( unsigned * bufferLength ) noexcept
 	HRESULT hr;
 	hr = pCaptureClient->GetNextPacketSize ( &packetLength );
 
+	void * retBuffer = byteArray;
+
 	bool bFirstPacket = true;
 	while ( SUCCEEDED ( hr ) && packetLength > 0 )
 	{
@@ -187,13 +189,24 @@ void * DCWASAPIAudioCapturer::GetAudioData ( unsigned * bufferLength ) noexcept
 		DWORD dwFlags;
 
 		if ( FAILED ( hr = pCaptureClient->GetBuffer ( &pData, &nNumFramesToRead, &dwFlags, NULL, NULL ) ) )
+		{
+			*bufferLength = -1;
 			return nullptr;
+		}
 
 		if ( !( bFirstPacket && AUDCLNT_BUFFERFLAGS_DATA_DISCONTINUITY == dwFlags ) && ( 0 != dwFlags ) )
+		{
+			*bufferLength = 0;
+			pCaptureClient->ReleaseBuffer ( nNumFramesToRead );
 			return nullptr;
+		}
 
 		if ( 0 == nNumFramesToRead )
+		{
+			*bufferLength = 0;
+			pCaptureClient->ReleaseBuffer ( nNumFramesToRead );
 			return nullptr;
+		}
 
 		LONG lBytesToWrite = nNumFramesToRead * pwfx->nBlockAlign;
 		memcpy ( byteArray + totalLength, pData, lBytesToWrite );

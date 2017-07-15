@@ -88,7 +88,9 @@ DWORD WINAPI MFAG_Progress ( LPVOID vg )
 		unsigned bufferLength;
 		void * data = audioGen->capturer->GetAudioData ( &bufferLength );
 		if ( data == nullptr || bufferLength == 0 )
+		{
 			continue;
+		}
 
 		sample->SetSampleFlags ( 0 );
 		sample->SetSampleTime ( totalDuration );
@@ -110,7 +112,7 @@ DWORD WINAPI MFAG_Progress ( LPVOID vg )
 	buffer->Release ();
 	sample->Release ();
 
-	audioGen->sinkWriter->Flush ( audioGen->streamIndex );
+	//audioGen->sinkWriter->Flush ( audioGen->streamIndex );
 	audioGen->sinkWriter->Finalize ();
 	audioGen->capturer->End ();
 

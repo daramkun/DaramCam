@@ -102,10 +102,10 @@ int main ( void )
 	DCAudioCapturer * audioCapturer = DCCreateWASAPILoopbackAudioCapturer ();
 	
 	//SHCreateStreamOnFileEx ( TEXT ( "Z:\\Test.adts" ), STGM_READWRITE | STGM_CREATE, 0, false, 0, &stream );
-	SHCreateStreamOnFileEx ( TEXT ( "Z:\\Test.adts" ), STGM_READWRITE | STGM_CREATE, 0, false, 0, &stream );
+	SHCreateStreamOnFileEx ( TEXT ( "Z:\\Test.m4a" ), STGM_READWRITE | STGM_CREATE, 0, false, 0, &stream );
 
 	//DCAudioGenerator * audGen = DCCreateWaveAudioGenerator ();
-	DCAudioGenerator * audGen = DCCreateMFAudioGenerator ( DCMFCONTAINER_ADTS, DCMFAF_AAC );
+	DCAudioGenerator * audGen = DCCreateMFAudioGenerator ( DCMFCONTAINER_MP4, DCMFAF_AAC );
 
 	audGen->Begin ( stream, audioCapturer );
 	Sleep ( 10000 );
