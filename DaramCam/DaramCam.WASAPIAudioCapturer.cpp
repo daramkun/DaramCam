@@ -24,6 +24,9 @@ public:
 	float GetVolume () noexcept;
 	void SetVolume ( float volume ) noexcept;
 
+	bool IsSilentNullBuffer () noexcept { return silentNullBuffer; }
+	void SetSilentNullBuffer ( bool silentNullBuffer ) noexcept { this->silentNullBuffer = silentNullBuffer; }
+
 private:
 	IAudioClient *pAudioClient;
 	IAudioCaptureClient * pCaptureClient;
@@ -37,6 +40,8 @@ private:
 	unsigned byteArrayLength;
 
 	UINT32 bufferFrameCount;
+
+	bool silentNullBuffer;
 
 	HANDLE hWakeUp;
 };
@@ -69,6 +74,16 @@ DARAMCAM_EXPORTS void DCSetVolumeToWASAPIAudioCapturer ( DCAudioCapturer * captu
 	dynamic_cast< DCWASAPIAudioCapturer* >( capturer )->SetVolume ( volume );
 }
 
+DARAMCAM_EXPORTS bool DCIsSilentNullBufferFromWASAPIAudioCapturer ( DCAudioCapturer * capturer )
+{
+	return dynamic_cast< DCWASAPIAudioCapturer* >( capturer )->IsSilentNullBuffer ();
+}
+
+DARAMCAM_EXPORTS void DCSetSilentNullBufferToWASAPIAudioCapturer ( DCAudioCapturer * capturer, bool silentNullBuffer )
+{
+	dynamic_cast< DCWASAPIAudioCapturer* >( capturer )->SetSilentNullBuffer ( silentNullBuffer );
+}
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -83,7 +98,7 @@ const IID IID_IAudioCaptureClient = __uuidof( IAudioCaptureClient );
 const IID IID_ISimpleAudioVolume = __uuidof( ISimpleAudioVolume );
 
 DCWASAPIAudioCapturer::DCWASAPIAudioCapturer ( IMMDevice * pDevice, bool deviceRelease, DWORD streamFlags )
-	: byteArray ( nullptr )
+	: byteArray ( nullptr ), silentNullBuffer ( false )
 {
 	pDevice->Activate ( IID_IAudioClient, CLSCTX_ALL, NULL, ( void** ) &pAudioClient );
 
@@ -181,7 +196,6 @@ void * DCWASAPIAudioCapturer::GetAudioData ( unsigned * bufferLength ) noexcept
 
 	void * retBuffer = byteArray;
 
-	bool bFirstPacket = true;
 	while ( SUCCEEDED ( hr ) && packetLength > 0 )
 	{
 		BYTE *pData;
@@ -194,18 +208,34 @@ void * DCWASAPIAudioCapturer::GetAudioData ( unsigned * bufferLength ) noexcept
 			return nullptr;
 		}
 
-		if ( !( bFirstPacket && AUDCLNT_BUFFERFLAGS_DATA_DISCONTINUITY == dwFlags ) && ( 0 != dwFlags ) )
+		if ( AUDCLNT_BUFFERFLAGS_SILENT == dwFlags )
 		{
-			*bufferLength = 0;
-			pCaptureClient->ReleaseBuffer ( nNumFramesToRead );
-			return nullptr;
+			fprintf ( stderr, "Silent(nNumFramesToRead: %d).\n", nNumFramesToRead );
+			if ( silentNullBuffer )
+			{
+				pCaptureClient->ReleaseBuffer ( nNumFramesToRead );
+				*bufferLength = -1;
+				return nullptr;
+			}
+		}
+		else if ( AUDCLNT_BUFFERFLAGS_DATA_DISCONTINUITY == dwFlags )
+		{
+			fprintf ( stderr, "Discontinuity(nNumFramesToRead: %d).\n", nNumFramesToRead );
+		}
+		else if ( AUDCLNT_BUFFERFLAGS_TIMESTAMP_ERROR == dwFlags )
+		{
+			fprintf ( stderr, "Timestamp Error(nNumFramesToRead: %d).\n", nNumFramesToRead );
+		}
+		else
+		{
+			fprintf ( stderr, "Maybe Discontinuity(nNumFramesToRead: %d).\n", nNumFramesToRead );
 		}
 
 		if ( 0 == nNumFramesToRead )
 		{
-			*bufferLength = 0;
-			pCaptureClient->ReleaseBuffer ( nNumFramesToRead );
-			return nullptr;
+			//*bufferLength = 0;
+			//pCaptureClient->ReleaseBuffer ( nNumFramesToRead );
+			//return nullptr;
 		}
 
 		LONG lBytesToWrite = nNumFramesToRead * pwfx->nBlockAlign;
@@ -214,8 +244,6 @@ void * DCWASAPIAudioCapturer::GetAudioData ( unsigned * bufferLength ) noexcept
 
 		if ( FAILED ( hr = pCaptureClient->ReleaseBuffer ( nNumFramesToRead ) ) )
 			return nullptr;
-
-		bFirstPacket = false;
 
 		hr = pCaptureClient->GetNextPacketSize ( &packetLength );
 	}

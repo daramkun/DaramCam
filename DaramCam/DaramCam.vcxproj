@@ -22,7 +22,7 @@
     <ProjectGuid>{CF2C45DB-8B57-41F5-9BBC-157442310AC3}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
     <RootNamespace>DaramCam</RootNamespace>
-    <WindowsTargetPlatformVersion>10.0.14393.0</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0.15063.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">

@@ -185,6 +185,8 @@ DARAMCAM_EXPORTS DCAudioCapturer* DCCreateWASAPILoopbackAudioCapturer ();
 
 DARAMCAM_EXPORTS float DCGetVolumeFromWASAPIAudioCapturer ( DCAudioCapturer * capturer );
 DARAMCAM_EXPORTS void DCSetVolumeToWASAPIAudioCapturer ( DCAudioCapturer * capturer, float volume );
+DARAMCAM_EXPORTS bool DCIsSilentNullBufferFromWASAPIAudioCapturer ( DCAudioCapturer * capturer );
+DARAMCAM_EXPORTS void DCSetSilentNullBufferToWASAPIAudioCapturer ( DCAudioCapturer * capturer, bool silentNullBuffer );
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////

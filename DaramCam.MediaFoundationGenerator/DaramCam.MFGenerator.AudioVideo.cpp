@@ -171,11 +171,9 @@ DWORD WINAPI MFAG_Progress2 ( LPVOID vg )
 
 		sample->SetSampleFlags ( 0 );
 		MFTIME duration = ( bufferLength * 10000000ULL ) / audioGen->audioCapturer->GetByterate ();
-		MFTIME temp = ( currentTick - lastTick ) * 10000ULL;
 		sample->SetSampleDuration ( duration );
 		sample->SetSampleTime ( totalDuration );
-		totalDuration += duration + ( temp - duration );
-		printf ( "temp: %ld, duration: %ld, temp - duration: %ld.\n", temp, duration, temp - duration );
+		totalDuration += duration;
 
 		buffer->SetCurrentLength ( bufferLength );
 		BYTE * pbBuffer;
